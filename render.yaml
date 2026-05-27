@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: alkan-actor
+    runtime: docker
+    dockerfilePath: ./alkan-actor/Dockerfile
+    dockerContext: ./alkan-actor
+    plan: free              # upgrade to 'starter' ($7/mo) if memory issues
+    region: oregon          # us-west-2 — closest to WA portals
+    envVars:
+      - key: PORT
+        value: 3001
+      - key: LOG_LEVEL
+        value: info
+      - key: REQUEST_DELAY_MS
+        value: 2000
+      - key: API_KEY
+        sync: false         # set manually in Render dashboard (secret)
+      - key: ANTHROPIC_API_KEY
+        sync: false         # set manually in Render dashboard (secret)
+      - key: CLAUDE_MODEL
+        value: claude-haiku-3-5-20241022
+    healthCheckPath: /health

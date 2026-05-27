@@ -1,0 +1,14 @@
+# Supabase credentials — NEVER commit this file
+config.js
+
+# Actor secrets
+alkan-actor/.env
+alkan-actor/node_modules/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+*.swp

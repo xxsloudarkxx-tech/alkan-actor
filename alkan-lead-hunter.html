@@ -1,0 +1,1781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Alkan Lead Hunter v11-EB</title>
+
+  <!-- ── Step 1: Load external config (gitignored, contains credentials) ── -->
+  <script src="config.js"></script>
+  <script>
+    // Fail loudly and immediately if config.js is missing or malformed
+    (function () {
+      var cfg = window.ALKAN_CONFIG;
+      if (!cfg || !cfg.SUPABASE_URL || !cfg.SUPABASE_ANON_KEY ||
+          cfg.SUPABASE_URL === 'YOUR_SUPABASE_URL') {
+        document.addEventListener('DOMContentLoaded', function () {
+          document.body.innerHTML =
+            '<div style="font-family:monospace;padding:2rem;color:#c00">' +
+            '<h2>Configuration Error</h2>' +
+            '<p><strong>config.js</strong> is missing or not filled in.</p>' +
+            '<p>Steps:</p>' +
+            '<ol>' +
+            '<li>Copy <code>config.example.js</code> to <code>config.js</code></li>' +
+            '<li>Fill in your SUPABASE_URL, SUPABASE_ANON_KEY, and CLIENTS</li>' +
+            '<li>Reload this page</li>' +
+            '</ol>' +
+            '</div>';
+        });
+        throw new Error('[AlkanLeadHunter] config.js missing or not configured. See config.example.js.');
+      }
+    })();
+  </script>
+
+  <!-- ── Supabase JS client (CDN, pinned version) ── -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js"></script>
+
+  <!-- ── Actor enrichment client (exposes actorEnrich, actorEnrichBatch, actorHealth) ── -->
+  <script src="actor-client.js"></script>
+
+  <style>
+    /* ── Reset & base ─────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --color-bg:        #0f1117;
+      --color-surface:   #1a1d27;
+      --color-border:    #2e3249;
+      --color-accent:    #4f8ef7;
+      --color-accent-h:  #3a7aee;
+      --color-success:   #22c55e;
+      --color-warn:      #f59e0b;
+      --color-danger:    #ef4444;
+      --color-text:      #e2e8f0;
+      --color-muted:     #8892a4;
+      --radius:          8px;
+      --shadow:          0 4px 24px rgba(0,0,0,.45);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--color-bg);
+      color: var(--color-text);
+      min-height: 100vh;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    /* ── Login screen ───────────────────────────────────────────────────── */
+    #login-screen {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+
+    .login-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      padding: 2.5rem 2rem;
+      width: 100%;
+      max-width: 380px;
+      box-shadow: var(--shadow);
+    }
+
+    .login-card h1 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+      color: var(--color-text);
+    }
+
+    .login-card .subtitle {
+      color: var(--color-muted);
+      font-size: 0.85rem;
+      margin-bottom: 1.8rem;
+    }
+
+    .login-card label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--color-muted);
+      margin-bottom: 0.4rem;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+
+    .login-card select,
+    .login-card input[type="password"] {
+      width: 100%;
+      padding: 0.65rem 0.85rem;
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      color: var(--color-text);
+      font-size: 0.9rem;
+      margin-bottom: 1.2rem;
+      outline: none;
+      transition: border-color .15s;
+    }
+
+    .login-card select:focus,
+    .login-card input[type="password"]:focus {
+      border-color: var(--color-accent);
+    }
+
+    .login-card .btn-login {
+      width: 100%;
+      padding: 0.75rem;
+      background: var(--color-accent);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .15s;
+    }
+
+    .login-card .btn-login:hover { background: var(--color-accent-h); }
+    .login-card .btn-login:disabled { opacity: .5; cursor: not-allowed; }
+
+    .login-error {
+      color: var(--color-danger);
+      font-size: 0.85rem;
+      margin-top: 0.8rem;
+      min-height: 1.2em;
+    }
+
+    /* ── App shell ──────────────────────────────────────────────────────── */
+    #app-screen { display: none; flex-direction: column; min-height: 100vh; }
+
+    /* ── Status banner ──────────────────────────────────────────────────── */
+    #status-banner {
+      display: none;
+      padding: 0.55rem 1.2rem;
+      font-size: 0.82rem;
+      font-weight: 500;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    #status-banner.online  { background: #14532d; color: #bbf7d0; }
+    #status-banner.offline { background: #7c2d12; color: #fed7aa; display: flex; }
+    #status-banner.syncing { background: #1e3a5f; color: #bfdbfe; display: flex; }
+    #status-banner.info    { background: #1e293b; color: #cbd5e1; display: flex; }
+
+    /* ── Top bar ────────────────────────────────────────────────────────── */
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.8rem 1.4rem;
+      background: var(--color-surface);
+      border-bottom: 1px solid var(--color-border);
+      flex-wrap: wrap;
+    }
+
+    .topbar h1 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      flex: 1;
+      white-space: nowrap;
+    }
+
+    .topbar h1 span { color: var(--color-accent); }
+
+    /* ── Client switcher ────────────────────────────────────────────────── */
+    .client-switcher {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      padding: 0.35rem 0.6rem;
+    }
+
+    .client-switcher label {
+      font-size: 0.75rem;
+      color: var(--color-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      white-space: nowrap;
+    }
+
+    .client-switcher select {
+      background: transparent;
+      border: none;
+      color: var(--color-text);
+      font-size: 0.88rem;
+      font-weight: 600;
+      outline: none;
+      cursor: pointer;
+      max-width: 180px;
+    }
+
+    .client-switcher select option { background: var(--color-surface); }
+
+    /* ── Sync & logout buttons ──────────────────────────────────────────── */
+    .btn-icon {
+      background: transparent;
+      border: 1px solid var(--color-border);
+      color: var(--color-muted);
+      border-radius: 6px;
+      padding: 0.35rem 0.7rem;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: color .15s, border-color .15s;
+      white-space: nowrap;
+    }
+
+    .btn-icon:hover { color: var(--color-text); border-color: var(--color-accent); }
+
+    /* ── Main content ───────────────────────────────────────────────────── */
+    .main {
+      flex: 1;
+      padding: 1.4rem;
+      max-width: 1400px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    /* ── Toolbar ────────────────────────────────────────────────────────── */
+    .toolbar {
+      display: flex;
+      gap: 0.75rem;
+      margin-bottom: 1.2rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .toolbar input[type="text"] {
+      flex: 1;
+      min-width: 180px;
+      padding: 0.55rem 0.85rem;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      color: var(--color-text);
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color .15s;
+    }
+
+    .toolbar input[type="text"]:focus { border-color: var(--color-accent); }
+
+    .btn-primary {
+      padding: 0.55rem 1.1rem;
+      background: var(--color-accent);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background .15s;
+    }
+
+    .btn-primary:hover { background: var(--color-accent-h); }
+    .btn-primary:disabled { opacity: .45; cursor: not-allowed; }
+
+    .btn-secondary {
+      padding: 0.55rem 0.9rem;
+      background: transparent;
+      color: var(--color-muted);
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: color .15s, border-color .15s;
+      white-space: nowrap;
+    }
+
+    .btn-secondary:hover { color: var(--color-text); border-color: var(--color-muted); }
+
+    /* ── Stats row ──────────────────────────────────────────────────────── */
+    .stats-row {
+      display: flex;
+      gap: 0.85rem;
+      margin-bottom: 1.2rem;
+      flex-wrap: wrap;
+    }
+
+    .stat-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      padding: 0.8rem 1.1rem;
+      min-width: 130px;
+    }
+
+    .stat-card .stat-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--color-accent);
+    }
+
+    .stat-card .stat-label {
+      font-size: 0.75rem;
+      color: var(--color-muted);
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+
+    /* ── Lead form ──────────────────────────────────────────────────────── */
+    .lead-form-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      padding: 1.2rem;
+      margin-bottom: 1.2rem;
+    }
+
+    .lead-form-card h2 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      color: var(--color-muted);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 0.85rem;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--color-muted);
+      margin-bottom: 0.3rem;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 0.55rem 0.75rem;
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      color: var(--color-text);
+      font-size: 0.88rem;
+      outline: none;
+      transition: border-color .15s;
+      font-family: inherit;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus { border-color: var(--color-accent); }
+
+    .form-group textarea { resize: vertical; min-height: 72px; }
+
+    .form-actions {
+      display: flex;
+      gap: 0.6rem;
+      margin-top: 1rem;
+      justify-content: flex-end;
+    }
+
+    /* ── Leads table ────────────────────────────────────────────────────── */
+    .leads-section { }
+
+    .leads-section h2 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--color-muted);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      margin-bottom: 0.75rem;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+
+    thead th {
+      background: var(--color-surface);
+      padding: 0.65rem 0.85rem;
+      text-align: left;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: var(--color-muted);
+      border-bottom: 1px solid var(--color-border);
+      white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    thead th:hover { color: var(--color-text); }
+
+    tbody tr {
+      border-bottom: 1px solid var(--color-border);
+      transition: background .1s;
+    }
+
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: rgba(79,142,247,.06); }
+
+    tbody td {
+      padding: 0.65rem 0.85rem;
+      vertical-align: top;
+      max-width: 220px;
+    }
+
+    /* ── Status badge ───────────────────────────────────────────────────── */
+    .badge {
+      display: inline-block;
+      padding: 0.2rem 0.55rem;
+      border-radius: 4px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+
+    .badge-new      { background: #1e3a5f; color: #93c5fd; }
+    .badge-contacted{ background: #3b2f00; color: #fcd34d; }
+    .badge-qualified{ background: #14532d; color: #86efac; }
+    .badge-lost     { background: #3b0a0a; color: #fca5a5; }
+    .badge-won      { background: #052e16; color: #4ade80; }
+    .badge-pending  { background: #3b2f00; color: #fcd34d; }
+
+    /* ── Row actions ────────────────────────────────────────────────────── */
+    .row-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+
+    .btn-edit, .btn-delete {
+      border: none;
+      border-radius: 4px;
+      padding: 0.25rem 0.55rem;
+      font-size: 0.75rem;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .btn-edit   { background: #1e3a5f; color: #93c5fd; }
+    .btn-delete { background: #3b0a0a; color: #fca5a5; }
+    .btn-edit:hover   { background: #2a4f84; }
+    .btn-delete:hover { background: #5a1212; }
+
+    /* ── Enrichment & Golden lead ────────────────────────────────────────── */
+    tbody tr.golden-lead { background: rgba(34,197,94,.07); border-left: 3px solid #22c55e; }
+    tbody tr.golden-lead:hover { background: rgba(34,197,94,.12); }
+
+    .btn-enrich {
+      border: 1px solid #2d4a7f;
+      background: #1e3a5f;
+      color: #93c5fd;
+      border-radius: 4px;
+      padding: 0.25rem 0.55rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background .15s;
+    }
+    .btn-enrich:hover     { background: #2d4a7f; }
+    .btn-enrich:disabled  { opacity: .5; cursor: not-allowed; }
+
+    .btn-bulk-enrich {
+      background: #14532d;
+      color: #86efac;
+      border: 1px solid #166534;
+      border-radius: 6px;
+      padding: 0.5rem 0.9rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background .15s;
+    }
+    .btn-bulk-enrich:hover    { background: #166534; }
+    .btn-bulk-enrich:disabled { opacity: .5; cursor: not-allowed; }
+
+    /* enrichment status */
+    .enr-idle    { font-size:.72rem; color:var(--color-muted); }
+    .enr-pending { font-size:.72rem; color:#93c5fd; }
+    .enr-success { font-size:.72rem; color:#86efac; }
+    .enr-failed  { font-size:.72rem; color:#fca5a5; cursor:pointer; }
+
+    /* score badge */
+    .score-badge {
+      display: inline-block;
+      font-size: .75rem;
+      font-weight: 700;
+      padding: .15rem .4rem;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+    .score-high { background:#14532d; color:#86efac; }
+    .score-mid  { background:#713f12; color:#fde68a; }
+    .score-low  { background:#1e293b; color:var(--color-muted); }
+
+    /* ── Company/LLC warning badge ──────────────────────────────────────── */
+    .badge-company {
+      display: inline-block;
+      font-size: .65rem;
+      font-weight: 700;
+      padding: .1rem .35rem;
+      border-radius: 3px;
+      background: #3b2000;
+      color: #fb923c;
+      border: 1px solid #7c3400;
+      white-space: nowrap;
+      margin-left: 4px;
+      vertical-align: middle;
+      letter-spacing: .03em;
+    }
+
+    /* ── Enriched contact info (shown after ⚡ Enrich) ───────────────────── */
+    .enr-phone {
+      font-size: .72rem;
+      color: #86efac;
+      white-space: nowrap;
+    }
+    .enr-owner-name {
+      font-size: .7rem;
+      color: #93c5fd;
+      margin-top: 2px;
+      line-height: 1.3;
+    }
+    .enr-no-gc {
+      font-size: .65rem;
+      color: #4ade80;
+      font-weight: 700;
+    }
+    .enr-has-gc {
+      font-size: .65rem;
+      color: #fbbf24;
+    }
+
+    .permit-tag {
+      font-family: monospace;
+      font-size: .75rem;
+      color: var(--color-muted);
+    }
+
+    /* actor health pill in topbar */
+    #actor-status {
+      font-size: .75rem;
+      padding: .3rem .6rem;
+      border-radius: 5px;
+      font-weight: 600;
+      white-space: nowrap;
+      cursor: pointer;
+      border: 1px solid transparent;
+    }
+    .actor-ok   { background: #14532d; color: #86efac; border-color: #166534; }
+    .actor-down { background: #3b0a0a; color: #fca5a5; border-color: #5a1212; }
+    .actor-chk  { background: #1e293b; color: var(--color-muted); border-color: var(--color-border); }
+
+    /* ── Empty state ────────────────────────────────────────────────────── */
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--color-muted);
+    }
+
+    .empty-state .icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+
+    /* ── Confirm dialog overlay ─────────────────────────────────────────── */
+    #confirm-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.65);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #confirm-overlay.show { display: flex; }
+
+    .confirm-dialog {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      padding: 1.8rem;
+      max-width: 400px;
+      width: 90%;
+      box-shadow: var(--shadow);
+    }
+
+    .confirm-dialog h3 { margin-bottom: 0.5rem; }
+    .confirm-dialog p  { color: var(--color-muted); font-size: 0.88rem; margin-bottom: 1.4rem; }
+    .confirm-dialog .actions { display: flex; gap: 0.6rem; justify-content: flex-end; }
+
+    .btn-danger {
+      padding: 0.55rem 1rem;
+      background: var(--color-danger);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn-danger:hover { background: #dc2626; }
+
+    /* ── Misc ───────────────────────────────────────────────────────────── */
+    .pending-dot::after {
+      content: ' •';
+      color: var(--color-warn);
+    }
+
+    .truncate {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .text-muted { color: var(--color-muted); }
+
+    @media (max-width: 600px) {
+      .topbar { flex-direction: column; align-items: flex-start; }
+      .form-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     LOGIN SCREEN
+     ════════════════════════════════════════════════════════════════════════ -->
+<div id="login-screen">
+  <div class="login-card">
+    <h1>Alkan Lead Hunter</h1>
+    <p class="subtitle">v11-EB &mdash; Sign in to continue</p>
+
+    <label for="login-client-select">Client</label>
+    <select id="login-client-select"></select>
+
+    <label for="login-password">Password</label>
+    <input type="password" id="login-password" placeholder="Password" autocomplete="current-password" />
+
+    <button class="btn-login" id="btn-login">Sign In</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     APP SCREEN
+     ════════════════════════════════════════════════════════════════════════ -->
+<div id="app-screen">
+
+  <!-- Status banner -->
+  <div id="status-banner" role="alert"></div>
+
+  <!-- Top bar -->
+  <header class="topbar">
+    <h1>Alkan Lead <span>Hunter</span> <small class="text-muted" style="font-weight:400;font-size:.75rem">v11-EB</small></h1>
+
+    <!-- Actor health pill — click to re-check -->
+    <div id="actor-status" class="actor-chk" title="Click to re-check actor status">⚡ Actor: checking…</div>
+
+    <!-- Client switcher -->
+    <div class="client-switcher" id="client-switcher-wrap">
+      <label for="client-select">Client:</label>
+      <select id="client-select"></select>
+    </div>
+
+    <button class="btn-icon" id="btn-sync" title="Manually push queued offline changes">Sync</button>
+    <button class="btn-icon" id="btn-logout">Sign Out</button>
+  </header>
+
+  <div class="main">
+
+    <!-- Stats row -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-value" id="stat-total">0</div>
+        <div class="stat-label">Total Leads</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="stat-new">0</div>
+        <div class="stat-label">New</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="stat-qualified">0</div>
+        <div class="stat-label">Qualified</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="stat-won">0</div>
+        <div class="stat-label">Won</div>
+      </div>
+      <div class="stat-card" style="border-color:#166534">
+        <div class="stat-value" id="stat-golden" style="color:#22c55e">0</div>
+        <div class="stat-label">🏆 Golden (pre-GC)</div>
+      </div>
+      <div class="stat-card" id="stat-queued-card" style="display:none">
+        <div class="stat-value" id="stat-queued" style="color:var(--color-warn)">0</div>
+        <div class="stat-label">Queued (offline)</div>
+      </div>
+    </div>
+
+    <!-- Lead form -->
+    <div class="lead-form-card">
+      <h2 id="form-title">Add Lead</h2>
+      <input type="hidden" id="lead-id" />
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="f-name">Name *</label>
+          <input type="text" id="f-name" placeholder="Full name" />
+        </div>
+        <div class="form-group">
+          <label for="f-company">Company</label>
+          <input type="text" id="f-company" placeholder="Company name" />
+        </div>
+        <div class="form-group">
+          <label for="f-email">Email</label>
+          <input type="text" id="f-email" placeholder="email@example.com" />
+        </div>
+        <div class="form-group">
+          <label for="f-phone">Phone</label>
+          <input type="text" id="f-phone" placeholder="+1 (555) 000-0000" />
+        </div>
+        <div class="form-group">
+          <label for="f-status">Status</label>
+          <select id="f-status">
+            <option value="new">New</option>
+            <option value="contacted">Contacted</option>
+            <option value="qualified">Qualified</option>
+            <option value="won">Won</option>
+            <option value="lost">Lost</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="f-source">Source</label>
+          <input type="text" id="f-source" placeholder="Referral, Web, etc." />
+        </div>
+        <!-- ── Enrichment fields ── -->
+        <div class="form-group">
+          <label for="f-permit">Permit # <small style="color:#4f8ef7;font-weight:400;text-transform:none">(for ⚡ Enrich)</small></label>
+          <input type="text" id="f-permit" placeholder="e.g. 6107022-CO" />
+        </div>
+        <div class="form-group">
+          <label for="f-jurisdiction">Jurisdiction</label>
+          <select id="f-jurisdiction">
+            <option value="seattle">Seattle DCI</option>
+            <option value="king">King County</option>
+            <option value="pierce">Pierce County (PALS+)</option>
+            <option value="snohomish">Snohomish County</option>
+            <option value="mybuildingpermit">MyBuildingPermit</option>
+          </select>
+        </div>
+        <div class="form-group" style="grid-column: 1 / -1">
+          <label for="f-notes">Notes</label>
+          <textarea id="f-notes" placeholder="Notes about this lead..."></textarea>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn-secondary" id="btn-cancel-form" style="display:none">Cancel</button>
+        <button class="btn-primary" id="btn-save-form">Add Lead</button>
+      </div>
+    </div>
+
+    <!-- Search + filter toolbar -->
+    <div class="toolbar">
+      <input type="text" id="search-input" placeholder="Search leads by name, company, permit#..." />
+      <select id="filter-status" style="padding:.55rem .75rem;background:var(--color-surface);border:1px solid var(--color-border);border-radius:6px;color:var(--color-text);font-size:.88rem;outline:none;cursor:pointer">
+        <option value="">All Statuses</option>
+        <option value="new">New</option>
+        <option value="contacted">Contacted</option>
+        <option value="qualified">Qualified</option>
+        <option value="won">Won</option>
+        <option value="lost">Lost</option>
+      </select>
+      <button class="btn-bulk-enrich" id="btn-bulk-enrich" title="Enrich all leads that have a permit number">⚡ Bulk Enrich</button>
+      <button class="btn-secondary" id="btn-export">Export CSV</button>
+    </div>
+
+    <!-- Leads table -->
+    <div class="leads-section">
+      <h2 id="leads-count-label">Leads</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th data-sort="name">Name</th>
+              <th data-sort="company">Company</th>
+              <th data-sort="email">Email</th>
+              <th data-sort="phone">Phone</th>
+              <th data-sort="status">Status</th>
+              <th>Score</th>
+              <th data-sort="permit_number">Permit #</th>
+              <th data-sort="source">Source</th>
+              <th data-sort="updated_at">Updated</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="leads-tbody"></tbody>
+        </table>
+        <div class="empty-state" id="empty-state" style="display:none">
+          <div class="icon">&#128270;</div>
+          <div>No leads found</div>
+          <div style="font-size:.8rem;margin-top:.25rem">Add your first lead using the form above</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /app-screen -->
+
+<!-- Confirm dialog -->
+<div id="confirm-overlay">
+  <div class="confirm-dialog">
+    <h3 id="confirm-title">Confirm</h3>
+    <p id="confirm-message">Are you sure?</p>
+    <div class="actions">
+      <button class="btn-secondary" id="btn-confirm-cancel">Cancel</button>
+      <button class="btn-danger"    id="btn-confirm-ok">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     APPLICATION LOGIC
+     ════════════════════════════════════════════════════════════════════════ -->
+<script>
+(function () {
+  'use strict';
+
+  // ── Config ───────────────────────────────────────────────────────────────
+  const CFG = window.ALKAN_CONFIG;
+
+  // ── Supabase client ──────────────────────────────────────────────────────
+  const { createClient } = supabase;
+  const sb = createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
+
+  // ── App state ────────────────────────────────────────────────────────────
+  let appState     = 'INIT';   // INIT | ONLINE | OFFLINE
+  let leads        = [];       // in-memory lead array (current client)
+  let activeClient = null;     // { label, email, password }
+  let sortKey      = 'updated_at';
+  let sortDir      = -1;       // -1 desc, 1 asc
+  let editingId    = null;
+  let confirmCb    = null;
+  let syncTimer    = null;
+
+  // ── Enrichment state map ─────────────────────────────────────────────────
+  // Populated by alkan:enrichment-update events fired by actor-client.js
+  // key = permit_number, value = { status, data, error, enriched_at }
+  let enrichmentMap = {};
+
+  // ── LocalStorage keys (namespaced by client email) ───────────────────────
+  function lsKey(suffix) {
+    const id = activeClient ? activeClient.email : 'unknown';
+    return `alh_${id}_${suffix}`;
+  }
+
+  // ── Queue helpers ────────────────────────────────────────────────────────
+  function getQueue() {
+    try { return JSON.parse(localStorage.getItem(lsKey('queue')) || '[]'); }
+    catch { return []; }
+  }
+
+  function setQueue(q) {
+    localStorage.setItem(lsKey('queue'), JSON.stringify(q));
+    renderQueueStat();
+  }
+
+  function queueWrite(lead) {
+    const q = getQueue();
+    const idx = q.findIndex(e => e.lead.id === lead.id);
+    const entry = { lead, queued_at: new Date().toISOString() };
+    if (idx >= 0) q[idx] = entry; else q.push(entry);
+    setQueue(q);
+  }
+
+  function clearQueue() {
+    localStorage.removeItem(lsKey('queue'));
+    renderQueueStat();
+  }
+
+  function updateCache(updatedLead) {
+    const cached = getCachedLeads();
+    const idx = cached.findIndex(r => r.id === updatedLead.id);
+    if (idx >= 0) cached[idx] = updatedLead; else cached.push(updatedLead);
+    localStorage.setItem(lsKey('cache'), JSON.stringify(cached));
+  }
+
+  function removeCached(id) {
+    const cached = getCachedLeads().filter(r => r.id !== id);
+    localStorage.setItem(lsKey('cache'), JSON.stringify(cached));
+  }
+
+  function getCachedLeads() {
+    try { return JSON.parse(localStorage.getItem(lsKey('cache')) || '[]'); }
+    catch { return []; }
+  }
+
+  // ── Status banner ────────────────────────────────────────────────────────
+  let bannerTimer = null;
+
+  function showBanner(msg, type = 'info', autoDismissMs = 0) {
+    const el = document.getElementById('status-banner');
+    el.textContent = msg;
+    el.className = type;
+    el.style.display = 'flex';
+    clearTimeout(bannerTimer);
+    if (autoDismissMs > 0) {
+      bannerTimer = setTimeout(() => { el.style.display = 'none'; }, autoDismissMs);
+    }
+  }
+
+  function hideBanner() {
+    clearTimeout(bannerTimer);
+    document.getElementById('status-banner').style.display = 'none';
+  }
+
+  // ── State transitions ────────────────────────────────────────────────────
+  function setState(s) {
+    appState = s;
+    const saveBtn = document.getElementById('btn-save-form');
+    if (s === 'OFFLINE') {
+      showBanner('Offline — changes are queued and will sync on reconnect.', 'offline');
+      if (saveBtn) saveBtn.textContent = editingId ? 'Update Lead (queued)' : 'Add Lead (queued)';
+    } else if (s === 'ONLINE') {
+      hideBanner();
+      if (saveBtn) saveBtn.textContent = editingId ? 'Update Lead' : 'Add Lead';
+    } else if (s === 'SYNCING') {
+      showBanner('Syncing queued changes...', 'syncing');
+    }
+  }
+
+  // ── Get current client_id from Supabase JWT ──────────────────────────────
+  async function getClientId() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) return null;
+    try {
+      const payload = JSON.parse(atob(session.access_token.split('.')[1]));
+      return (payload.app_metadata && payload.app_metadata.client_id) || null;
+    } catch {
+      return null;
+    }
+  }
+
+  // ── HARDENED load() ──────────────────────────────────────────────────────
+  async function load() {
+    let serverResult = null;
+    let serverError  = null;
+
+    try {
+      const { data, error, status } = await sb
+        .from('leads')
+        .select('*')
+        .order('updated_at', { ascending: false });
+
+      if (error) {
+        serverError = { type: 'supabase_error', status, message: error.message };
+      } else {
+        serverResult = data;
+      }
+    } catch (netErr) {
+      serverError = { type: 'network_error', message: netErr.message };
+    }
+
+    if (serverError) {
+      setState('OFFLINE');
+      showBanner(
+        `Could not reach server (${serverError.message}). Showing cached data. Saves will be queued.`,
+        'offline'
+      );
+      leads = getCachedLeads();
+      render();
+      return;
+    }
+
+    setState('ONLINE');
+    localStorage.setItem(lsKey('cache'), JSON.stringify(serverResult));
+    leads = serverResult;
+    render();
+  }
+
+  // ── HARDENED save() ─────────────────────────────────────────────────────
+  async function saveLead(lead) {
+    lead.updated_at = new Date().toISOString();
+
+    if (!lead.client_id) {
+      lead.client_id = await getClientId();
+    }
+
+    if (appState === 'OFFLINE') {
+      queueWrite(lead);
+      updateCache(lead);
+      const idx = leads.findIndex(r => r.id === lead.id);
+      if (idx >= 0) leads[idx] = lead; else leads.unshift(lead);
+      render();
+      showBanner('Offline — change queued, will sync on reconnect.', 'offline');
+      return { queued: true };
+    }
+
+    try {
+      const { data, error } = await sb
+        .from('leads')
+        .upsert(lead, { onConflict: 'id' })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      updateCache(data);
+      const idx = leads.findIndex(r => r.id === data.id);
+      if (idx >= 0) leads[idx] = data; else leads.unshift(data);
+      render();
+      return { saved: true, data };
+
+    } catch (err) {
+      setState('OFFLINE');
+      queueWrite(lead);
+      updateCache(lead);
+      const idx = leads.findIndex(r => r.id === lead.id);
+      if (idx >= 0) leads[idx] = lead; else leads.unshift(lead);
+      render();
+      showBanner(`Save failed (${err.message}). Change queued for retry.`, 'offline');
+      return { queued: true };
+    }
+  }
+
+  // ── deleteLead() ─────────────────────────────────────────────────────────
+  async function deleteLead(id) {
+    leads = leads.filter(r => r.id !== id);
+    removeCached(id);
+    render();
+
+    if (appState === 'OFFLINE') {
+      queueWrite({ id, _delete: true, updated_at: new Date().toISOString() });
+      showBanner('Offline — delete queued for sync.', 'offline');
+      return;
+    }
+
+    try {
+      const { error } = await sb.from('leads').delete().eq('id', id);
+      if (error) throw error;
+    } catch (err) {
+      setState('OFFLINE');
+      queueWrite({ id, _delete: true, updated_at: new Date().toISOString() });
+      showBanner(`Delete failed (${err.message}). Queued for retry.`, 'offline');
+    }
+  }
+
+  // ── sync() — flush offline queue on reconnect ────────────────────────────
+  async function sync() {
+    const queue = getQueue();
+    if (queue.length === 0) {
+      if (appState !== 'ONLINE') setState('ONLINE');
+      return;
+    }
+
+    setState('SYNCING');
+
+    try {
+      await sb.from('leads').select('id').limit(1);
+    } catch {
+      setState('OFFLINE');
+      return;
+    }
+
+    const ids = queue.map(e => e.lead.id).filter(Boolean);
+    let serverMap = {};
+
+    if (ids.length > 0) {
+      const { data: serverRows } = await sb
+        .from('leads')
+        .select('id, updated_at')
+        .in('id', ids);
+
+      if (serverRows) {
+        serverMap = Object.fromEntries(serverRows.map(r => [r.id, r.updated_at]));
+      }
+    }
+
+    const toUpsert = [];
+    const toDelete = [];
+
+    for (const { lead } of queue) {
+      if (lead._delete) {
+        toDelete.push(lead.id);
+        continue;
+      }
+      const serverTs = serverMap[lead.id];
+      if (!serverTs) {
+        toUpsert.push(lead);
+      } else if (new Date(lead.updated_at) > new Date(serverTs)) {
+        toUpsert.push(lead);
+      } else {
+        console.warn('[AlkanLeadHunter] Discarded stale local change for lead', lead.id);
+      }
+    }
+
+    let syncError = null;
+
+    if (toUpsert.length > 0) {
+      const { error } = await sb
+        .from('leads')
+        .upsert(toUpsert, { onConflict: 'id' });
+      if (error) syncError = error;
+    }
+
+    for (const id of toDelete) {
+      const { error } = await sb.from('leads').delete().eq('id', id);
+      if (error) syncError = error;
+    }
+
+    if (syncError) {
+      setState('OFFLINE');
+      showBanner(`Sync partially failed: ${syncError.message}. Will retry.`, 'offline');
+      return;
+    }
+
+    clearQueue();
+    setState('ONLINE');
+    showBanner('Synced successfully.', 'info', 3000);
+    await load();
+  }
+
+  // ── UUID generator ────────────────────────────────────────────────────────
+  function uuid() {
+    return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+      (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+    );
+  }
+
+  // ── Enrichment helpers ────────────────────────────────────────────────────
+
+  function getEnr(permitNumber) {
+    if (!permitNumber) return null;
+    return enrichmentMap[permitNumber] || null;
+  }
+
+  function scoreBadgeClass(score) {
+    if (score >= 70) return 'score-high';
+    if (score >= 40) return 'score-mid';
+    return 'score-low';
+  }
+
+  function renderScore(lead) {
+    const enr = getEnr(lead.permit_number);
+    if (!lead.permit_number) return '<span class="text-muted" style="font-size:.72rem">—</span>';
+    if (!enr) return '<span class="enr-idle">—</span>';
+    if (enr.status === 'pending') return '<span class="enr-pending">⏳ enriching…</span>';
+    if (enr.status === 'failed')  return `<span class="enr-failed" title="${escHtml(enr.error || 'unknown')}" onclick="App.enrichLead('${lead.id}')">❌ retry</span>`;
+    if (enr.status === 'success' && enr.data) {
+      const sc     = enr.data.scoring || {};
+      const score  = sc.score != null ? sc.score : '?';
+      const golden = sc.golden_lead;
+      const cls    = scoreBadgeClass(score);
+      return `${golden ? '🏆 ' : ''}<span class="score-badge ${cls}">${score}</span>`;
+    }
+    return '<span class="text-muted" style="font-size:.72rem">—</span>';
+  }
+
+  function isGolden(lead) {
+    const enr = getEnr(lead.permit_number);
+    if (!enr || !enr.data || !enr.data.scoring) return false;
+    return !!enr.data.scoring.golden_lead;
+  }
+
+  // ── Company / LLC detection ───────────────────────────────────────────────
+  function isLikelyCompany(name) {
+    if (!name) return false;
+    return /\b(llc|l\.l\.c|lp|inc\.?|corp\.?|ltd\.?|pllc|plc|co\.|holdings?|group|properties|realty|investments?|enterprises?|solutions?|services?|partners?|management|trust|association|assoc\.?)\b/i.test(name);
+  }
+
+  // Returns enriched contact data if enrichment succeeded
+  function getEnrData(lead) {
+    const enr = getEnr(lead.permit_number);
+    if (!enr || enr.status !== 'success' || !enr.data) return null;
+    return enr.data.data || enr.data || null;
+  }
+
+  // Render enriched contact details (owner name, phone, GC signal) inside a cell
+  function renderEnrichedContact(lead) {
+    const d = getEnrData(lead);
+    if (!d) return '';
+    const parts = [];
+
+    // Real owner name from enrichment (different from what was manually entered)
+    if (d.owner_name && d.owner_name !== lead.name) {
+      const companyWarn = isLikelyCompany(d.owner_name)
+        ? `<span class="badge-company">🏢 EMPRESA</span>`
+        : '';
+      parts.push(`<div class="enr-owner-name">👤 ${escHtml(d.owner_name)}${companyWarn}</div>`);
+    }
+    // Enriched phone
+    if (d.owner_phone && d.owner_phone !== lead.phone) {
+      parts.push(`<div class="enr-phone">📞 ${escHtml(d.owner_phone)}</div>`);
+    }
+    // GC signal
+    if (d.pre_gc_signal === true || d.pre_gc_signal === false) {
+      parts.push(d.pre_gc_signal === false
+        ? `<div class="enr-no-gc">✅ Sin GC — contacto directo</div>`
+        : `<div class="enr-has-gc">⚠️ Ya tiene GC</div>`
+      );
+    }
+    return parts.join('');
+  }
+
+  // ── Actor health check ────────────────────────────────────────────────────
+  async function checkActorHealth() {
+    const el = document.getElementById('actor-status');
+    if (!el) return;
+    if (!window.actorHealth) {
+      el.textContent = '⚡ Actor: not loaded';
+      el.className = 'actor-chk';
+      return;
+    }
+    el.textContent = '⚡ Actor: checking…';
+    el.className = 'actor-chk';
+    try {
+      const ok = await window.actorHealth();
+      el.textContent = ok ? '⚡ Actor: online' : '⚡ Actor: offline';
+      el.className = ok ? 'actor-ok' : 'actor-down';
+    } catch {
+      el.textContent = '⚡ Actor: offline';
+      el.className = 'actor-down';
+    }
+  }
+
+  // ── Listen to enrichment updates from actor-client.js ────────────────────
+  window.addEventListener('alkan:enrichment-update', (e) => {
+    const { permitNumber, state } = e.detail || {};
+    if (permitNumber) {
+      enrichmentMap[permitNumber] = state;
+      render();
+    }
+  });
+
+  // ── Render ────────────────────────────────────────────────────────────────
+  function getFilteredLeads() {
+    const q      = (document.getElementById('search-input').value || '').toLowerCase();
+    const status = document.getElementById('filter-status').value;
+
+    return leads
+      .filter(l => {
+        if (status && l.status !== status) return false;
+        if (!q) return true;
+        return [l.name, l.company, l.email, l.phone, l.source, l.notes, l.permit_number]
+          .some(v => v && v.toLowerCase().includes(q));
+      })
+      .sort((a, b) => {
+        const av = (a[sortKey] || '').toLowerCase();
+        const bv = (b[sortKey] || '').toLowerCase();
+        if (av < bv) return sortDir;
+        if (av > bv) return -sortDir;
+        return 0;
+      });
+  }
+
+  function badgeClass(status) {
+    return {
+      new:       'badge-new',
+      contacted: 'badge-contacted',
+      qualified: 'badge-qualified',
+      won:       'badge-won',
+      lost:      'badge-lost'
+    }[status] || 'badge-new';
+  }
+
+  function fmtDate(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return d.toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' });
+  }
+
+  function jurisdictionLabel(j) {
+    const map = {
+      seattle:          'Seattle DCI',
+      king:             'King County',
+      pierce:           'Pierce (PALS+)',
+      snohomish:        'Snohomish',
+      mybuildingpermit: 'MyBldgPermit',
+    };
+    return map[j] || j || '';
+  }
+
+  function renderQueueStat() {
+    const q   = getQueue();
+    const len = q.length;
+    const card = document.getElementById('stat-queued-card');
+    document.getElementById('stat-queued').textContent = len;
+    if (card) card.style.display = len > 0 ? '' : 'none';
+  }
+
+  function render() {
+    const filtered = getFilteredLeads();
+    const tbody    = document.getElementById('leads-tbody');
+    const empty    = document.getElementById('empty-state');
+
+    // Stats
+    document.getElementById('stat-total').textContent     = leads.length;
+    document.getElementById('stat-new').textContent       = leads.filter(l => l.status === 'new').length;
+    document.getElementById('stat-qualified').textContent = leads.filter(l => l.status === 'qualified').length;
+    document.getElementById('stat-won').textContent       = leads.filter(l => l.status === 'won').length;
+    document.getElementById('stat-golden').textContent    = leads.filter(l => isGolden(l)).length;
+
+    document.getElementById('leads-count-label').textContent =
+      `Leads (${filtered.length}${filtered.length !== leads.length ? ' of ' + leads.length : ''})`;
+
+    renderQueueStat();
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = '';
+      empty.style.display = '';
+      return;
+    }
+
+    empty.style.display = 'none';
+
+    const queue      = getQueue();
+    const pendingIds = new Set(queue.map(e => e.lead.id));
+    const enrAvail   = !!window.actorEnrich;
+
+    tbody.innerHTML = filtered.map(l => {
+      const isPending   = pendingIds.has(l.id);
+      const golden      = isGolden(l);
+      const enr         = getEnr(l.permit_number);
+      const isEnriching = enr && enr.status === 'pending';
+      const enrichBtn   = (l.permit_number && enrAvail)
+        ? `<button class="btn-enrich" onclick="App.enrichLead('${l.id}')" ${isEnriching ? 'disabled' : ''}>${isEnriching ? '⏳' : '⚡ Enrich'}</button>`
+        : '';
+
+      // Company detection on manually-entered name/company field
+      const nameIsCompany    = isLikelyCompany(l.name);
+      const companyBadge     = nameIsCompany
+        ? `<span class="badge-company">🏢 EMPRESA</span>` : '';
+      const enrichedContact  = renderEnrichedContact(l);
+
+      return `<tr class="${golden ? 'golden-lead' : ''}">
+        <td class="${isPending ? 'pending-dot' : ''}">
+          <strong>${escHtml(l.name || '')}</strong>${companyBadge}
+          ${enrichedContact}
+        </td>
+        <td class="truncate">${escHtml(l.company || '')}</td>
+        <td class="truncate text-muted">${escHtml(l.email || '')}</td>
+        <td class="text-muted">${escHtml(l.phone || '')}</td>
+        <td><span class="badge ${badgeClass(l.status)}">${l.status || 'new'}</span></td>
+        <td style="min-width:80px">${renderScore(l)}</td>
+        <td>
+          ${l.permit_number
+            ? `<span class="permit-tag">${escHtml(l.permit_number)}</span>
+               <span class="text-muted" style="font-size:.68rem;display:block">${escHtml(jurisdictionLabel(l.jurisdiction))}</span>`
+            : '<span class="text-muted" style="font-size:.72rem">—</span>'}
+        </td>
+        <td class="text-muted">${escHtml(l.source || '')}</td>
+        <td class="text-muted" style="white-space:nowrap">${fmtDate(l.updated_at)}</td>
+        <td>
+          <div class="row-actions">
+            <button class="btn-edit"   onclick="App.editLead('${l.id}')">Edit</button>
+            <button class="btn-delete" onclick="App.confirmDelete('${l.id}', '${escHtml(l.name || 'this lead')}')">Delete</button>
+            ${enrichBtn}
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  function escHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  // ── Form helpers ──────────────────────────────────────────────────────────
+  function clearForm() {
+    editingId = null;
+    document.getElementById('lead-id').value        = '';
+    document.getElementById('f-name').value         = '';
+    document.getElementById('f-company').value      = '';
+    document.getElementById('f-email').value        = '';
+    document.getElementById('f-phone').value        = '';
+    document.getElementById('f-status').value       = 'new';
+    document.getElementById('f-source').value       = '';
+    document.getElementById('f-permit').value       = '';
+    document.getElementById('f-jurisdiction').value = 'seattle';
+    document.getElementById('f-notes').value        = '';
+    document.getElementById('form-title').textContent         = 'Add Lead';
+    document.getElementById('btn-save-form').textContent      = appState === 'OFFLINE' ? 'Add Lead (queued)' : 'Add Lead';
+    document.getElementById('btn-cancel-form').style.display  = 'none';
+  }
+
+  function fillForm(lead) {
+    editingId = lead.id;
+    document.getElementById('lead-id').value        = lead.id;
+    document.getElementById('f-name').value         = lead.name          || '';
+    document.getElementById('f-company').value      = lead.company       || '';
+    document.getElementById('f-email').value        = lead.email         || '';
+    document.getElementById('f-phone').value        = lead.phone         || '';
+    document.getElementById('f-status').value       = lead.status        || 'new';
+    document.getElementById('f-source').value       = lead.source        || '';
+    document.getElementById('f-permit').value       = lead.permit_number || '';
+    document.getElementById('f-jurisdiction').value = lead.jurisdiction  || 'seattle';
+    document.getElementById('f-notes').value        = lead.notes         || '';
+    document.getElementById('form-title').textContent         = 'Edit Lead';
+    document.getElementById('btn-save-form').textContent      = appState === 'OFFLINE' ? 'Update Lead (queued)' : 'Update Lead';
+    document.getElementById('btn-cancel-form').style.display  = '';
+    document.getElementById('f-name').focus();
+    document.getElementById('f-name').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  // ── Client switcher ──────────────────────────────────────────────────────
+  function buildClientSwitcher(selectEl) {
+    selectEl.innerHTML = CFG.CLIENTS.map((c, i) =>
+      `<option value="${i}">${escHtml(c.label)}</option>`
+    ).join('');
+  }
+
+  async function switchClient(clientIndex, password) {
+    const client = CFG.CLIENTS[clientIndex];
+    if (!client) return;
+
+    await sb.auth.signOut();
+    leads = [];
+    enrichmentMap = {};
+    render();
+    setState('INIT');
+
+    const { error } = await sb.auth.signInWithPassword({
+      email:    client.email,
+      password: password || client.password
+    });
+
+    if (error) {
+      return { error };
+    }
+
+    activeClient = client;
+
+    const q = getQueue();
+    if (q.length > 0) await sync();
+
+    await load();
+    startSyncLoop();
+    return { ok: true };
+  }
+
+  // ── Connectivity listeners ───────────────────────────────────────────────
+  function startSyncLoop() {
+    clearInterval(syncTimer);
+    syncTimer = setInterval(async () => {
+      if (appState === 'OFFLINE' || getQueue().length > 0) {
+        await sync();
+      }
+    }, 30000);
+  }
+
+  window.addEventListener('online',  () => sync());
+  window.addEventListener('focus',   () => { if (appState === 'OFFLINE' || getQueue().length > 0) sync(); });
+
+  // ── Export CSV ───────────────────────────────────────────────────────────
+  function exportCSV() {
+    const cols = ['name','company','email','phone','status','permit_number','jurisdiction','source','notes','updated_at'];
+    const rows = [cols.join(',')].concat(
+      getFilteredLeads().map(l =>
+        cols.map(c => '"' + String(l[c] || '').replace(/"/g, '""') + '"').join(',')
+      )
+    );
+    const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url;
+    a.download = `leads_${activeClient ? activeClient.label.replace(/\s+/g,'_') : 'export'}_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // ── Public API (called from inline onclick) ──────────────────────────────
+  window.App = {
+    editLead(id) {
+      const lead = leads.find(l => l.id === id);
+      if (lead) fillForm(lead);
+    },
+
+    confirmDelete(id, name) {
+      document.getElementById('confirm-title').textContent   = 'Delete Lead';
+      document.getElementById('confirm-message').textContent = `Delete "${name}"? This cannot be undone.`;
+      document.getElementById('confirm-overlay').classList.add('show');
+      confirmCb = () => deleteLead(id);
+    },
+
+    // ── Single lead enrichment via actor ──────────────────────────────────
+    async enrichLead(id) {
+      const lead = leads.find(l => l.id === id);
+      if (!lead) return;
+      if (!lead.permit_number) {
+        showBanner('Add a Permit # to this lead before enriching.', 'offline', 4000);
+        return;
+      }
+      if (!window.actorEnrich) {
+        showBanner('Actor client not loaded — check actor-client.js path.', 'offline', 4000);
+        return;
+      }
+      showBanner(`⚡ Enriching permit ${lead.permit_number}…`, 'syncing');
+      const result = await window.actorEnrich(lead.permit_number, lead.jurisdiction || 'seattle');
+      if (result && result.success) {
+        const score = result.data && result.data.scoring ? result.data.scoring.score : '?';
+        const golden = result.data && result.data.scoring && result.data.scoring.golden_lead;
+        showBanner(`${golden ? '🏆 Golden lead! ' : ''}Enriched — Score: ${score}`, 'info', 5000);
+      } else {
+        showBanner(`Enrichment failed: ${(result && result.error) || 'unknown error'}`, 'offline', 5000);
+      }
+    },
+
+    // ── Bulk enrichment — all leads with permit_number ─────────────────────
+    async bulkEnrich() {
+      if (!window.actorEnrichBatch) {
+        showBanner('Actor client not loaded — check actor-client.js path.', 'offline', 4000);
+        return;
+      }
+      const targets = leads.filter(l => l.permit_number && !String(l.permit_number).startsWith('demo_'));
+      if (targets.length === 0) {
+        showBanner('No leads with permit numbers. Add a Permit # to leads first.', 'offline', 5000);
+        return;
+      }
+      const btn = document.getElementById('btn-bulk-enrich');
+      btn.disabled = true;
+      btn.textContent = `⏳ Enriching ${targets.length}…`;
+      showBanner(`⚡ Bulk enriching ${targets.length} permits — this may take a minute…`, 'syncing');
+
+      const payload = targets.map(l => ({
+        permit_number: l.permit_number,
+        jurisdiction:  l.jurisdiction || 'seattle',
+      }));
+
+      try {
+        const result = await window.actorEnrichBatch(payload);
+        const ok  = (result.results || []).filter(r => r.success).length;
+        const bad = targets.length - ok;
+        const goldens = (result.results || []).filter(r => r.success && r.data && r.data.scoring && r.data.scoring.golden_lead).length;
+        showBanner(`Bulk done — ${ok} enriched${goldens ? ', ' + goldens + ' golden 🏆' : ''}, ${bad} failed.`, 'info', 7000);
+      } catch (err) {
+        showBanner(`Bulk enrich error: ${err.message}`, 'offline', 6000);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '⚡ Bulk Enrich';
+      }
+    }
+  };
+
+  // ── Boot ─────────────────────────────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', async function () {
+
+    // Populate login client dropdown
+    const loginSelect = document.getElementById('login-client-select');
+    buildClientSwitcher(loginSelect);
+
+    // Populate in-app client switcher
+    const clientSelect = document.getElementById('client-select');
+    buildClientSwitcher(clientSelect);
+
+    // Actor health pill — click to re-check
+    const actorPill = document.getElementById('actor-status');
+    if (actorPill) actorPill.addEventListener('click', checkActorHealth);
+
+    // Check for existing session
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) {
+      const user = session.user;
+      const idx  = CFG.CLIENTS.findIndex(c => c.email === user.email);
+      activeClient = idx >= 0 ? CFG.CLIENTS[idx] : CFG.CLIENTS[0];
+      if (clientSelect) clientSelect.value = idx >= 0 ? idx : 0;
+
+      showApp();
+      await load();
+      startSyncLoop();
+      checkActorHealth();
+    }
+
+    // ── Login form ────────────────────────────────────────────────────────
+    const btnLogin  = document.getElementById('btn-login');
+    const pwInput   = document.getElementById('login-password');
+    const loginErr  = document.getElementById('login-error');
+
+    async function doLogin() {
+      const idx    = parseInt(loginSelect.value, 10);
+      const client = CFG.CLIENTS[idx];
+      const pw     = pwInput.value.trim() || client.password;
+
+      btnLogin.disabled    = true;
+      btnLogin.textContent = 'Signing in...';
+      loginErr.textContent = '';
+
+      const result = await switchClient(idx, pw);
+
+      btnLogin.disabled    = false;
+      btnLogin.textContent = 'Sign In';
+
+      if (result && result.error) {
+        loginErr.textContent = result.error.message;
+        return;
+      }
+
+      if (clientSelect) clientSelect.value = idx;
+      showApp();
+      checkActorHealth();
+    }
+
+    btnLogin.addEventListener('click', doLogin);
+    pwInput.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+    // ── In-app client switcher ─────────────────────────────────────────────
+    if (clientSelect) {
+      clientSelect.addEventListener('change', async function () {
+        const q = getQueue();
+        if (q.length > 0) {
+          const ok = confirm(
+            `You have ${q.length} unsaved change(s) queued for the current client.\n\nSwitch anyway? The queue will be synced first if possible, then discarded if offline.`
+          );
+          if (!ok) {
+            const curIdx = CFG.CLIENTS.findIndex(c => c.email === (activeClient || {}).email);
+            clientSelect.value = curIdx >= 0 ? curIdx : 0;
+            return;
+          }
+        }
+
+        const idx = parseInt(clientSelect.value, 10);
+        showBanner('Switching client...', 'syncing');
+        const result = await switchClient(idx);
+        if (result && result.error) {
+          showBanner(`Switch failed: ${result.error.message}`, 'offline');
+        }
+      });
+    }
+
+    // ── Top bar buttons ───────────────────────────────────────────────────
+    document.getElementById('btn-logout').addEventListener('click', async function () {
+      const q = getQueue();
+      if (q.length > 0) {
+        const ok = confirm(`You have ${q.length} queued change(s) that have not synced. Sign out anyway?`);
+        if (!ok) return;
+      }
+      await sb.auth.signOut();
+      leads = [];
+      enrichmentMap = {};
+      clearInterval(syncTimer);
+      showLogin();
+    });
+
+    document.getElementById('btn-sync').addEventListener('click', sync);
+
+    // ── Bulk Enrich ───────────────────────────────────────────────────────
+    document.getElementById('btn-bulk-enrich').addEventListener('click', () => App.bulkEnrich());
+
+    // ── Lead form submit ──────────────────────────────────────────────────
+    document.getElementById('btn-save-form').addEventListener('click', async function () {
+      const name = document.getElementById('f-name').value.trim();
+      if (!name) {
+        document.getElementById('f-name').focus();
+        document.getElementById('f-name').style.borderColor = 'var(--color-danger)';
+        setTimeout(() => document.getElementById('f-name').style.borderColor = '', 1500);
+        return;
+      }
+
+      this.disabled    = true;
+      this.textContent = 'Saving...';
+
+      const clientId = await getClientId();
+      const lead = {
+        id:            editingId || uuid(),
+        name:          name,
+        company:       document.getElementById('f-company').value.trim(),
+        email:         document.getElementById('f-email').value.trim(),
+        phone:         document.getElementById('f-phone').value.trim(),
+        status:        document.getElementById('f-status').value,
+        source:        document.getElementById('f-source').value.trim(),
+        permit_number: document.getElementById('f-permit').value.trim() || null,
+        jurisdiction:  document.getElementById('f-jurisdiction').value || 'seattle',
+        notes:         document.getElementById('f-notes').value.trim(),
+        client_id:     clientId || (activeClient ? activeClient.email : ''),
+        updated_at:    new Date().toISOString()
+      };
+
+      await saveLead(lead);
+
+      this.disabled    = false;
+      this.textContent = editingId
+        ? (appState === 'OFFLINE' ? 'Update Lead (queued)' : 'Update Lead')
+        : (appState === 'OFFLINE' ? 'Add Lead (queued)'    : 'Add Lead');
+
+      clearForm();
+    });
+
+    document.getElementById('btn-cancel-form').addEventListener('click', clearForm);
+
+    // ── Search / filter ───────────────────────────────────────────────────
+    document.getElementById('search-input').addEventListener('input',   render);
+    document.getElementById('filter-status').addEventListener('change', render);
+
+    // ── Sortable columns ──────────────────────────────────────────────────
+    document.querySelectorAll('thead th[data-sort]').forEach(th => {
+      th.addEventListener('click', function () {
+        const key = this.dataset.sort;
+        if (sortKey === key) sortDir *= -1; else { sortKey = key; sortDir = -1; }
+        document.querySelectorAll('thead th').forEach(t => t.style.color = '');
+        this.style.color = 'var(--color-accent)';
+        render();
+      });
+    });
+
+    // ── Export ────────────────────────────────────────────────────────────
+    document.getElementById('btn-export').addEventListener('click', exportCSV);
+
+    // ── Confirm dialog ────────────────────────────────────────────────────
+    document.getElementById('btn-confirm-ok').addEventListener('click', function () {
+      document.getElementById('confirm-overlay').classList.remove('show');
+      if (confirmCb) { confirmCb(); confirmCb = null; }
+    });
+
+    document.getElementById('btn-confirm-cancel').addEventListener('click', function () {
+      document.getElementById('confirm-overlay').classList.remove('show');
+      confirmCb = null;
+    });
+
+    document.getElementById('confirm-overlay').addEventListener('click', function (e) {
+      if (e.target === this) {
+        this.classList.remove('show');
+        confirmCb = null;
+      }
+    });
+  });
+
+  // ── Screen transitions ────────────────────────────────────────────────────
+  function showLogin() {
+    document.getElementById('login-screen').style.display = '';
+    document.getElementById('app-screen').style.display   = 'none';
+    document.getElementById('login-password').value       = '';
+    document.getElementById('login-error').textContent    = '';
+  }
+
+  function showApp() {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app-screen').style.display   = 'flex';
+  }
+
+})();
+</script>
+</body>
+</html>

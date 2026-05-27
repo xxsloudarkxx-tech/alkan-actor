@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Alkan Plan Estimator</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #0f1117;
+      --surface:     #1a1d27;
+      --border:      #2e3249;
+      --accent:      #4f8ef7;
+      --accent-h:    #3a7aee;
+      --success:     #22c55e;
+      --warning:     #f59e0b;
+      --danger:      #ef4444;
+      --text:        #e2e8f0;
+      --muted:       #64748b;
+      --orange:      #f97316;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      padding: 1.5rem 1rem;
+    }
+
+    /* ── Header ─────────────────────────────────────────────────────── */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      margin-bottom: 1.5rem;
+    }
+    .header-icon {
+      width: 40px; height: 40px;
+      border-radius: 10px;
+      background: rgba(79,142,247,.15);
+      border: 1px solid rgba(79,142,247,.3);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.3rem;
+    }
+    .header h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -.02em;
+    }
+    .header .sub {
+      font-size: .8rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+    .version-tag {
+      font-size: .65rem;
+      font-weight: 700;
+      background: rgba(79,142,247,.15);
+      color: var(--accent);
+      border: 1px solid rgba(79,142,247,.3);
+      border-radius: 4px;
+      padding: .1rem .4rem;
+      margin-left: .3rem;
+    }
+
+    /* ── API Key section ────────────────────────────────────────────── */
+    .api-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem 1.1rem;
+      margin-bottom: 1rem;
+    }
+    .api-section label {
+      display: block;
+      font-size: .75rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      margin-bottom: 0.4rem;
+    }
+    .api-row {
+      display: flex;
+      gap: 0.5rem;
+    }
+    .api-row input {
+      flex: 1;
+      background: #0e1016;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-family: monospace;
+      font-size: .82rem;
+      padding: .45rem .7rem;
+      outline: none;
+    }
+    .api-row input:focus { border-color: var(--accent); }
+    .btn-sm {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: .78rem;
+      font-weight: 600;
+      padding: .4rem .8rem;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn-sm:hover { border-color: var(--accent); color: var(--accent); }
+    .api-hint { font-size: .72rem; color: var(--muted); margin-top: .4rem; }
+    .api-hint a { color: var(--accent); }
+
+    /* ── Upload card ────────────────────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.1rem;
+      margin-bottom: 1rem;
+    }
+    .card-title {
+      font-size: .8rem;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      margin-bottom: .8rem;
+    }
+
+    .drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: 10px;
+      padding: 2rem 1rem;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .15s, background .15s;
+    }
+    .drop-zone:hover, .drop-zone.active {
+      border-color: var(--accent);
+      background: rgba(79,142,247,.05);
+    }
+    .drop-zone.has-file {
+      border-color: var(--success);
+      background: rgba(34,197,94,.05);
+    }
+    .drop-zone .dz-icon { font-size: 2rem; margin-bottom: .5rem; }
+    .drop-zone .dz-label { font-size: .88rem; color: var(--muted); }
+    .drop-zone .dz-name  { font-size: .88rem; font-weight: 600; color: var(--success); }
+    .drop-zone .dz-size  { font-size: .72rem; color: var(--muted); margin-top: 2px; }
+
+    /* Context fields */
+    .fields { display: grid; grid-template-columns: 1fr 1fr; gap: .7rem; margin-top: .8rem; }
+    .field-group { display: flex; flex-direction: column; gap: .3rem; }
+    .field-group label { font-size: .72rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+    .field-group input, .field-group select {
+      background: #0e1016;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: .83rem;
+      padding: .4rem .7rem;
+      outline: none;
+    }
+    .field-group input:focus, .field-group select:focus { border-color: var(--accent); }
+
+    /* ── Run button ─────────────────────────────────────────────────── */
+    .btn-run {
+      width: 100%;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: .95rem;
+      font-weight: 700;
+      padding: .8rem 1rem;
+      cursor: pointer;
+      transition: background .15s;
+      letter-spacing: -.01em;
+      margin-bottom: 1rem;
+    }
+    .btn-run:hover   { background: var(--accent-h); }
+    .btn-run:disabled { opacity: .5; cursor: not-allowed; }
+
+    /* ── Log ─────────────────────────────────────────────────────────── */
+    .log-box {
+      background: #0a0c12;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: .7rem .9rem;
+      max-height: 120px;
+      overflow-y: auto;
+      margin-bottom: 1rem;
+      font-family: monospace;
+      font-size: .75rem;
+    }
+    .log-line { display: flex; gap: .5rem; margin-bottom: 2px; }
+    .log-ts   { color: var(--muted); flex-shrink: 0; }
+    .log-info    { color: var(--muted); }
+    .log-success { color: var(--success); }
+    .log-error   { color: var(--danger); }
+    .log-warn    { color: var(--warning); }
+
+    /* ── Results ─────────────────────────────────────────────────────── */
+    .result-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: .9rem 1.1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .result-title { font-weight: 700; font-size: 1rem; }
+    .result-tags  { display: flex; gap: .4rem; flex-wrap: wrap; }
+
+    .tag {
+      font-size: .7rem;
+      font-weight: 700;
+      padding: .15rem .5rem;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+    .tag-blue   { background: rgba(79,142,247,.15); color: var(--accent); border: 1px solid rgba(79,142,247,.3); }
+    .tag-green  { background: rgba(34,197,94,.12); color: #4ade80; border: 1px solid rgba(34,197,94,.3); }
+    .tag-orange { background: rgba(249,115,22,.12); color: #fb923c; border: 1px solid rgba(249,115,22,.3); }
+    .tag-yellow { background: rgba(245,158,11,.12); color: #fbbf24; border: 1px solid rgba(245,158,11,.3); }
+
+    /* Trade sections */
+    .trade-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: .8rem;
+      padding: 1rem;
+    }
+    .trade-card {
+      background: #12141c;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .trade-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: .6rem .9rem;
+      border-bottom: 1px solid var(--border);
+      background: rgba(255,255,255,.02);
+    }
+    .trade-name { font-size: .85rem; font-weight: 700; }
+    .trade-range {
+      font-size: .8rem;
+      font-weight: 700;
+      color: var(--success);
+      font-family: monospace;
+    }
+    .trade-items {
+      padding: .6rem .9rem;
+      list-style: none;
+    }
+    .trade-items li {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-size: .78rem;
+      padding: .25rem 0;
+      border-bottom: 1px solid rgba(255,255,255,.04);
+      gap: .5rem;
+    }
+    .trade-items li:last-child { border-bottom: none; }
+    .item-desc { color: var(--text); flex: 1; }
+    .item-qty  { color: var(--muted); font-family: monospace; white-space: nowrap; }
+    .item-cost { color: var(--success); font-family: monospace; font-weight: 600; white-space: nowrap; }
+
+    /* Summary bar */
+    .summary-bar {
+      padding: 1rem 1.1rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .sum-item { display: flex; flex-direction: column; gap: .15rem; }
+    .sum-label { font-size: .68rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+    .sum-value { font-size: 1rem; font-weight: 700; font-family: monospace; }
+    .sum-value.total { color: var(--success); font-size: 1.1rem; }
+    .sum-value.labor { color: #93c5fd; }
+    .sum-value.material { color: #fbbf24; }
+
+    /* Scope notes */
+    .scope-section {
+      padding: .8rem 1.1rem;
+      border-top: 1px solid var(--border);
+    }
+    .scope-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: .5rem; }
+    .scope-text  { font-size: .84rem; line-height: 1.6; color: var(--text); }
+
+    /* CTA bar */
+    .cta-bar {
+      padding: .8rem 1.1rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: .6rem;
+      flex-wrap: wrap;
+    }
+    .btn-copy {
+      background: rgba(79,142,247,.12);
+      border: 1px solid rgba(79,142,247,.3);
+      color: var(--accent);
+      border-radius: 7px;
+      padding: .45rem .9rem;
+      font-size: .8rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-copy:hover { background: rgba(79,142,247,.2); }
+
+    .btn-export {
+      background: rgba(34,197,94,.1);
+      border: 1px solid rgba(34,197,94,.25);
+      color: #4ade80;
+      border-radius: 7px;
+      padding: .45rem .9rem;
+      font-size: .8rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-export:hover { background: rgba(34,197,94,.18); }
+
+    /* Error */
+    .err-box {
+      background: rgba(239,68,68,.08);
+      border: 1px solid rgba(239,68,68,.3);
+      border-radius: 8px;
+      padding: .8rem 1rem;
+      font-size: .83rem;
+      color: #fca5a5;
+      margin-bottom: 1rem;
+    }
+
+    /* Disclaimer */
+    .disclaimer {
+      font-size: .7rem;
+      color: var(--muted);
+      text-align: center;
+      margin-top: 1.5rem;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-icon">📐</div>
+  <div>
+    <h1>Alkan Plan Estimator <span class="version-tag">v1.0</span></h1>
+    <div class="sub">Sube los planos → IA genera estimado completo por trade para el GC</div>
+  </div>
+</div>
+
+<!-- API Key -->
+<div class="api-section">
+  <label>Anthropic API Key</label>
+  <div class="api-row">
+    <input type="password" id="api-key" placeholder="sk-ant-..." autocomplete="off" />
+    <button class="btn-sm" onclick="saveKey()">Guardar</button>
+    <button class="btn-sm" onclick="clearKey()">Borrar</button>
+  </div>
+  <div class="api-hint">
+    Se guarda solo en esta pestaña. Obtén tu key en
+    <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com</a>.
+  </div>
+</div>
+
+<!-- Upload -->
+<div class="card">
+  <div class="card-title">📎 Documentos del proyecto</div>
+
+  <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+    <div class="dz-icon" id="dz-icon">📄</div>
+    <div id="dz-label" class="dz-label">Click para subir PDF de planos, o arrastra aquí</div>
+    <div id="dz-name"  class="dz-name"  style="display:none"></div>
+    <div id="dz-size"  class="dz-size"  style="display:none"></div>
+  </div>
+  <input type="file" id="file-input" accept=".pdf,.png,.jpg,.jpeg" style="display:none" />
+
+  <div class="fields">
+    <div class="field-group">
+      <label>Tipo de proyecto</label>
+      <select id="f-type">
+        <option value="residential_new">Residencial — Nueva construcción</option>
+        <option value="residential_remodel">Residencial — Remodelación</option>
+        <option value="commercial_new">Comercial — Nueva construcción</option>
+        <option value="commercial_ti">Comercial — Tenant Improvement</option>
+        <option value="adu">ADU / DADU</option>
+        <option value="addition">Adición / Ampliación</option>
+        <option value="garage">Garage / Carport</option>
+      </select>
+    </div>
+    <div class="field-group">
+      <label>Ciudad / Jurisdicción</label>
+      <select id="f-city">
+        <option value="seattle">Seattle, WA</option>
+        <option value="bellevue">Bellevue, WA</option>
+        <option value="kirkland">Kirkland, WA</option>
+        <option value="redmond">Redmond, WA</option>
+        <option value="renton">Renton, WA</option>
+        <option value="kent">Kent, WA</option>
+        <option value="tacoma">Tacoma, WA</option>
+        <option value="other_wa">Otro — WA State</option>
+      </select>
+    </div>
+    <div class="field-group">
+      <label>Permit # (opcional)</label>
+      <input type="text" id="f-permit" placeholder="3036533-LU" />
+    </div>
+    <div class="field-group">
+      <label>Trades a incluir</label>
+      <select id="f-trades">
+        <option value="all">Todos los trades</option>
+        <option value="framing">Solo Framing</option>
+        <option value="concrete">Solo Concreto</option>
+        <option value="electrical">Solo Eléctrico</option>
+        <option value="plumbing">Solo Plomería</option>
+        <option value="hvac">Solo HVAC</option>
+        <option value="finish">Solo Acabados</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<button class="btn-run" id="btn-run" onclick="runEstimate()" disabled>
+  📐 Generar Estimado con IA
+</button>
+
+<!-- Log -->
+<div class="log-box" id="log-box" style="display:none"></div>
+
+<!-- Error -->
+<div class="err-box" id="err-box" style="display:none"></div>
+
+<!-- Results -->
+<div class="card" id="results-card" style="display:none">
+  <div class="result-header">
+    <span class="result-title" id="res-title">Estimado del proyecto</span>
+    <div class="result-tags" id="res-tags"></div>
+  </div>
+  <div class="scope-section">
+    <div class="scope-title">Scope de obra</div>
+    <div class="scope-text" id="res-scope"></div>
+  </div>
+  <div class="trade-grid" id="res-trades"></div>
+  <div class="summary-bar" id="res-summary"></div>
+  <div class="cta-bar">
+    <button class="btn-copy" onclick="copyText()">📋 Copiar estimado</button>
+    <button class="btn-export" onclick="exportTxt()">💾 Exportar .txt</button>
+  </div>
+</div>
+
+<div class="disclaimer">
+  ⚠️ Este estimado es una referencia aproximada generado por IA a partir de los planos.<br>
+  Siempre verifica quantities en campo antes de presentar tu bid al GC.
+</div>
+
+<script>
+// ── State ─────────────────────────────────────────────────────────────────────
+let uploadedFile  = null;
+let lastResult    = null;
+const KEY_STORAGE = 'alkan_est_apikey';
+
+// ── API Key persistence ───────────────────────────────────────────────────────
+function saveKey() {
+  const v = document.getElementById('api-key').value.trim();
+  if (!v) return;
+  try { sessionStorage.setItem(KEY_STORAGE, v); } catch {}
+  showToast('Key guardada para esta sesión');
+  updateRunBtn();
+}
+function clearKey() {
+  try { sessionStorage.removeItem(KEY_STORAGE); } catch {}
+  document.getElementById('api-key').value = '';
+  updateRunBtn();
+}
+function getKey() {
+  const inp = document.getElementById('api-key').value.trim();
+  if (inp) return inp;
+  try { return sessionStorage.getItem(KEY_STORAGE) || ''; } catch { return ''; }
+}
+
+// ── File upload ───────────────────────────────────────────────────────────────
+document.getElementById('file-input').addEventListener('change', function(e) {
+  setFile(e.target.files[0] || null);
+});
+
+const dz = document.getElementById('drop-zone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('active'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('active'));
+dz.addEventListener('drop', e => {
+  e.preventDefault();
+  dz.classList.remove('active');
+  setFile(e.dataTransfer.files[0] || null);
+});
+
+function setFile(f) {
+  uploadedFile = f;
+  if (!f) {
+    dz.classList.remove('has-file');
+    document.getElementById('dz-icon').textContent  = '📄';
+    document.getElementById('dz-label').style.display = '';
+    document.getElementById('dz-name').style.display  = 'none';
+    document.getElementById('dz-size').style.display  = 'none';
+    updateRunBtn();
+    return;
+  }
+  dz.classList.add('has-file');
+  document.getElementById('dz-icon').textContent         = '✅';
+  document.getElementById('dz-label').style.display      = 'none';
+  document.getElementById('dz-name').style.display       = '';
+  document.getElementById('dz-size').style.display       = '';
+  document.getElementById('dz-name').textContent         = f.name;
+  document.getElementById('dz-size').textContent         = (f.size / 1024).toFixed(0) + ' KB';
+  updateRunBtn();
+}
+
+function updateRunBtn() {
+  const btn = document.getElementById('btn-run');
+  btn.disabled = !(uploadedFile && getKey());
+}
+
+document.getElementById('api-key').addEventListener('input', updateRunBtn);
+
+// ── Logging ───────────────────────────────────────────────────────────────────
+function log(msg, type = 'info') {
+  const box = document.getElementById('log-box');
+  box.style.display = '';
+  const ts   = new Date().toLocaleTimeString();
+  const line = document.createElement('div');
+  line.className = 'log-line';
+  line.innerHTML = `<span class="log-ts">${ts}</span><span class="log-${type}">${escHtml(msg)}</span>`;
+  box.appendChild(line);
+  box.scrollTop = box.scrollHeight;
+}
+function clearLog() {
+  const box = document.getElementById('log-box');
+  box.innerHTML = '';
+  box.style.display = 'none';
+}
+
+// ── Main estimation ───────────────────────────────────────────────────────────
+async function runEstimate() {
+  clearLog();
+  document.getElementById('err-box').style.display    = 'none';
+  document.getElementById('results-card').style.display = 'none';
+  lastResult = null;
+
+  const btn = document.getElementById('btn-run');
+  btn.disabled = true;
+  btn.textContent = '⏳ Analizando planos…';
+
+  try {
+    // 1. Convert file to base64
+    log('Leyendo archivo: ' + uploadedFile.name);
+    const base64 = await fileToBase64(uploadedFile);
+    log('Archivo cargado — ' + (uploadedFile.size / 1024).toFixed(0) + ' KB', 'success');
+
+    // 2. Build prompt context
+    const projType = document.getElementById('f-type').value;
+    const city     = document.getElementById('f-city').value;
+    const permit   = document.getElementById('f-permit').value;
+    const trades   = document.getElementById('f-trades').value;
+
+    log('Enviando a Claude (claude-opus-4-5) para análisis de planos…');
+
+    const prompt = buildPrompt(projType, city, permit, trades);
+    const result = await callClaude(base64, uploadedFile.type || 'application/pdf', prompt);
+
+    log('Análisis completado ✓', 'success');
+    lastResult = result;
+    renderResult(result);
+
+  } catch (err) {
+    const box = document.getElementById('err-box');
+    box.style.display = '';
+    box.textContent   = '❌ ' + err.message;
+    log(err.message, 'error');
+  } finally {
+    btn.disabled    = false;
+    btn.textContent = '📐 Generar Estimado con IA';
+    updateRunBtn();
+  }
+}
+
+function buildPrompt(projType, city, permit, trades) {
+  const typeLabels = {
+    residential_new: 'Residential New Construction',
+    residential_remodel: 'Residential Remodel',
+    commercial_new: 'Commercial New Construction',
+    commercial_ti: 'Commercial Tenant Improvement',
+    adu: 'ADU/DADU',
+    addition: 'Addition/Expansion',
+    garage: 'Garage/Carport',
+  };
+  const typeLabel = typeLabels[projType] || projType;
+  const tradesNote = trades === 'all'
+    ? 'Include ALL applicable trades.'
+    : `Focus ONLY on the ${trades} trade.`;
+
+  return `You are an expert construction cost estimator specializing in Washington State projects, particularly the ${city} area.
+
+Analyze this construction plan document and produce a detailed cost estimate.
+
+Project context:
+- Type: ${typeLabel}
+- Location: ${city}, WA State
+- Permit number: ${permit || 'not provided'}
+- Trades scope: ${tradesNote}
+
+Return ONLY valid JSON with this exact structure (no markdown, no explanation):
+{
+  "project_title": "",
+  "project_type": "",
+  "square_footage": "",
+  "scope_summary": "",
+  "trades": [
+    {
+      "trade": "",
+      "emoji": "",
+      "items": [
+        {
+          "description": "",
+          "quantity": "",
+          "unit": "",
+          "unit_cost": 0,
+          "total_cost": 0
+        }
+      ],
+      "labor_subtotal": 0,
+      "material_subtotal": 0,
+      "trade_total_low": 0,
+      "trade_total_high": 0
+    }
+  ],
+  "totals": {
+    "labor_total": 0,
+    "material_total": 0,
+    "subtotal": 0,
+    "contingency_pct": 10,
+    "contingency_amount": 0,
+    "total_low": 0,
+    "total_high": 0
+  },
+  "key_flags": [],
+  "confidence": "high | medium | low",
+  "notes": "",
+  "bid_tips": ""
+}
+
+Rules:
+- Use current Washington State labor rates (2024–2025 prevailing wage when applicable)
+- Include permit fees and inspections in the relevant trade
+- key_flags: array of strings — things the GC or sub should watch out for (e.g., "Structural engineer stamp required", "Fire sprinklers per code", "EPA Lead RRP compliance")
+- bid_tips: one paragraph of advice for pitching this job to the GC as a sub
+- If a field cannot be determined from the plans, use null
+- All monetary values in USD`;
+}
+
+async function callClaude(base64, mediaType, prompt) {
+  const apiKey = getKey();
+  if (!apiKey) throw new Error('API key no configurada');
+
+  const isImage = mediaType.startsWith('image/');
+
+  const contentBlock = isImage
+    ? { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } }
+    : { type: 'document', source: { type: 'base64', media_type: mediaType, data: base64 } };
+
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+    },
+    body: JSON.stringify({
+      model: 'claude-opus-4-5',
+      max_tokens: 4096,
+      messages: [{
+        role: 'user',
+        content: [contentBlock, { type: 'text', text: prompt }]
+      }]
+    })
+  });
+
+  if (!resp.ok) {
+    const txt = await resp.text().catch(() => '');
+    let msg = `Claude API error ${resp.status}`;
+    try { msg = JSON.parse(txt).error?.message || msg; } catch {}
+    throw new Error(msg);
+  }
+
+  const data = await resp.json();
+  const raw  = (data.content || []).map(b => b.text || '').join('');
+  const clean = raw.replace(/```json|```/g, '').trim();
+
+  try {
+    return JSON.parse(clean);
+  } catch {
+    throw new Error('La IA no devolvió JSON válido. Intenta de nuevo o usa un PDF más legible.');
+  }
+}
+
+// ── Render result ─────────────────────────────────────────────────────────────
+function renderResult(r) {
+  const card = document.getElementById('results-card');
+  card.style.display = '';
+
+  // Header
+  document.getElementById('res-title').textContent =
+    r.project_title || 'Estimado del proyecto';
+
+  const tags = document.getElementById('res-tags');
+  tags.innerHTML = '';
+  if (r.project_type) addTag(tags, r.project_type, 'tag-blue');
+  if (r.square_footage) addTag(tags, r.square_footage + ' SF', 'tag-yellow');
+  if (r.confidence) {
+    const cls = r.confidence === 'high' ? 'tag-green' : r.confidence === 'medium' ? 'tag-yellow' : 'tag-orange';
+    addTag(tags, 'Confianza: ' + r.confidence, cls);
+  }
+
+  // Scope
+  document.getElementById('res-scope').textContent = r.scope_summary || '—';
+
+  // Key flags
+  if (r.key_flags && r.key_flags.length) {
+    const scopeEl = document.getElementById('res-scope');
+    const flagsHtml = '<ul style="margin-top:.7rem;padding-left:1.1rem;list-style:disc;font-size:.8rem;color:#fbbf24;">'
+      + r.key_flags.map(f => `<li style="margin-bottom:.3rem">${escHtml(f)}</li>`).join('')
+      + '</ul>';
+    scopeEl.insertAdjacentHTML('afterend',
+      `<div style="margin-top:.6rem"><div style="font-size:.72rem;font-weight:700;color:#f59e0b;text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem">⚠️ Flags del proyecto</div>${flagsHtml}</div>`
+    );
+  }
+
+  // Trades
+  const tradesEl = document.getElementById('res-trades');
+  tradesEl.innerHTML = '';
+  (r.trades || []).forEach(t => {
+    const lo = fmt(t.trade_total_low);
+    const hi = fmt(t.trade_total_high);
+    const range = lo === hi ? lo : `${lo} – ${hi}`;
+
+    const card = document.createElement('div');
+    card.className = 'trade-card';
+    const itemsHtml = (t.items || []).map(item => `
+      <li>
+        <span class="item-desc">${escHtml(item.description || '')}</span>
+        <span class="item-qty">${escHtml(String(item.quantity || ''))}&nbsp;${escHtml(item.unit || '')}</span>
+        <span class="item-cost">${fmt(item.total_cost)}</span>
+      </li>
+    `).join('');
+
+    card.innerHTML = `
+      <div class="trade-card-header">
+        <span class="trade-name">${escHtml((t.emoji || '') + ' ' + (t.trade || ''))}</span>
+        <span class="trade-range">${range}</span>
+      </div>
+      <ul class="trade-items">${itemsHtml}</ul>
+    `;
+    tradesEl.appendChild(card);
+  });
+
+  // Summary
+  const tot = r.totals || {};
+  const sumEl = document.getElementById('res-summary');
+  sumEl.innerHTML = `
+    <div class="sum-item">
+      <span class="sum-label">Mano de Obra</span>
+      <span class="sum-value labor">${fmt(tot.labor_total)}</span>
+    </div>
+    <div class="sum-item">
+      <span class="sum-label">Materiales</span>
+      <span class="sum-value material">${fmt(tot.material_total)}</span>
+    </div>
+    <div class="sum-item">
+      <span class="sum-label">Contingencia (${tot.contingency_pct || 10}%)</span>
+      <span class="sum-value" style="color:var(--muted)">${fmt(tot.contingency_amount)}</span>
+    </div>
+    <div class="sum-item" style="margin-left:auto">
+      <span class="sum-label">Total estimado</span>
+      <span class="sum-value total">${fmt(tot.total_low)} – ${fmt(tot.total_high)}</span>
+    </div>
+  `;
+
+  // Bid tips
+  if (r.bid_tips) {
+    sumEl.insertAdjacentHTML('afterend', `
+      <div class="scope-section" style="border-bottom:1px solid var(--border)">
+        <div class="scope-title">💡 Tips para el Bid al GC</div>
+        <div class="scope-text">${escHtml(r.bid_tips)}</div>
+      </div>
+    `);
+  }
+
+  // Notes
+  if (r.notes) {
+    const bids = document.querySelector('.scope-section:last-of-type');
+    bids.insertAdjacentHTML('afterend', `
+      <div class="scope-section">
+        <div class="scope-title">📝 Notas del estimador</div>
+        <div class="scope-text">${escHtml(r.notes)}</div>
+      </div>
+    `);
+  }
+}
+
+// ── Export / Copy ─────────────────────────────────────────────────────────────
+function buildTextExport(r) {
+  if (!r) return '';
+  let out = `ALKAN PLAN ESTIMATOR — ${r.project_title || 'Estimado'}\n`;
+  out += '='.repeat(60) + '\n\n';
+  out += `Tipo: ${r.project_type || '—'}\n`;
+  out += `SF: ${r.square_footage || '—'}\n`;
+  out += `Confianza: ${r.confidence || '—'}\n\n`;
+  out += `SCOPE:\n${r.scope_summary || '—'}\n\n`;
+  if (r.key_flags?.length) {
+    out += `FLAGS:\n${r.key_flags.map(f => '• ' + f).join('\n')}\n\n`;
+  }
+  out += 'TRADES:\n' + '-'.repeat(40) + '\n';
+  (r.trades || []).forEach(t => {
+    out += `\n${(t.emoji || '') + ' ' + (t.trade || '').toUpperCase()} — $${t.trade_total_low?.toLocaleString()} – $${t.trade_total_high?.toLocaleString()}\n`;
+    (t.items || []).forEach(i => {
+      out += `  • ${i.description} — ${i.quantity} ${i.unit} — $${i.total_cost?.toLocaleString()}\n`;
+    });
+  });
+  const tot = r.totals || {};
+  out += '\n' + '='.repeat(40) + '\n';
+  out += `Mano de obra:   $${tot.labor_total?.toLocaleString()}\n`;
+  out += `Materiales:     $${tot.material_total?.toLocaleString()}\n`;
+  out += `Contingencia:   $${tot.contingency_amount?.toLocaleString()}\n`;
+  out += `TOTAL:          $${tot.total_low?.toLocaleString()} – $${tot.total_high?.toLocaleString()}\n`;
+  if (r.bid_tips) out += `\nBID TIPS:\n${r.bid_tips}\n`;
+  if (r.notes)    out += `\nNOTAS:\n${r.notes}\n`;
+  out += '\nGenerado por Alkan Plan Estimator v1.0\n';
+  return out;
+}
+
+function copyText() {
+  navigator.clipboard.writeText(buildTextExport(lastResult))
+    .then(() => showToast('Copiado al portapapeles ✓'))
+    .catch(() => showToast('No se pudo copiar'));
+}
+
+function exportTxt() {
+  const text = buildTextExport(lastResult);
+  const blob  = new Blob([text], { type: 'text/plain' });
+  const url   = URL.createObjectURL(blob);
+  const a     = document.createElement('a');
+  a.href      = url;
+  a.download  = 'alkan-estimado.txt';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── Utils ─────────────────────────────────────────────────────────────────────
+function fileToBase64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload  = () => res(r.result.split(',')[1]);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+}
+function fmt(n) {
+  if (n == null || n === 0) return '$0';
+  return '$' + Number(n).toLocaleString('en-US');
+}
+function escHtml(s) {
+  return String(s ?? '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function addTag(container, text, cls) {
+  const el = document.createElement('span');
+  el.className = 'tag ' + cls;
+  el.textContent = text;
+  container.appendChild(el);
+}
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.style.cssText = 'position:fixed;bottom:1.5rem;right:1.5rem;background:#22c55e;color:#000;font-weight:700;font-size:.82rem;padding:.5rem 1rem;border-radius:8px;z-index:9999;pointer-events:none;';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2500);
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+(function init() {
+  // Restore saved key
+  try {
+    const saved = sessionStorage.getItem(KEY_STORAGE);
+    if (saved) document.getElementById('api-key').value = saved;
+  } catch {}
+  updateRunBtn();
+})();
+</script>
+
+</body>
+</html>
