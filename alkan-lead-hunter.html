@@ -1,1781 +1,3413 @@
 <!DOCTYPE html>
+<!--
+═══════════════════════════════════════════════════════════════════════════════
+  ALKAN LEAD HUNTER  ·  v9-EB (Envision Builders Edition)  ·  2026-05-19
+  Pre-Permit & Early-Review Construction Intelligence
+  Specifically built for Envision Builders LLC — Tim Kairez / Ashley Kairez
+
+  Target categories:
+    • SFR new construction · DADU · ADU · Townhomes
+    • Multifamily (5–30 units) · Commercial TI · Commercial new build
+    • Affordable Housing (ONLY public works exception)
+
+  Inverted scoring: pre-issuance / under-review > issued
+  Excludes: PW (except affordable housing), single-trade repairs, owner-occupied remodels <$50K
+  Owner / Architect / Owner's Rep enrichment-first workflow
+
+  © Andres Alkan / Alkan Construction Assistant
+  alkanassistant@gmail.com · +1 206 640 6034
+  León, Guanajuato, México · Serving Puget Sound region
+═══════════════════════════════════════════════════════════════════════════════
+-->
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Alkan Lead Hunter v11-EB</title>
-
-  <!-- ── Step 1: Load external config (gitignored, contains credentials) ── -->
-  <script src="config.js"></script>
-  <script>
-    // Fail loudly and immediately if config.js is missing or malformed
-    (function () {
-      var cfg = window.ALKAN_CONFIG;
-      if (!cfg || !cfg.SUPABASE_URL || !cfg.SUPABASE_ANON_KEY ||
-          cfg.SUPABASE_URL === 'YOUR_SUPABASE_URL') {
-        document.addEventListener('DOMContentLoaded', function () {
-          document.body.innerHTML =
-            '<div style="font-family:monospace;padding:2rem;color:#c00">' +
-            '<h2>Configuration Error</h2>' +
-            '<p><strong>config.js</strong> is missing or not filled in.</p>' +
-            '<p>Steps:</p>' +
-            '<ol>' +
-            '<li>Copy <code>config.example.js</code> to <code>config.js</code></li>' +
-            '<li>Fill in your SUPABASE_URL, SUPABASE_ANON_KEY, and CLIENTS</li>' +
-            '<li>Reload this page</li>' +
-            '</ol>' +
-            '</div>';
-        });
-        throw new Error('[AlkanLeadHunter] config.js missing or not configured. See config.example.js.');
-      }
-    })();
-  </script>
-
-  <!-- ── Supabase JS client (CDN, pinned version) ── -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js"></script>
-
-  <!-- ── Actor enrichment client (exposes actorEnrich, actorEnrichBatch, actorHealth) ── -->
-  <script src="actor-client.js"></script>
-
-  <style>
-    /* ── Reset & base ─────────────────────────────────────────────────────── */
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      --color-bg:        #0f1117;
-      --color-surface:   #1a1d27;
-      --color-border:    #2e3249;
-      --color-accent:    #4f8ef7;
-      --color-accent-h:  #3a7aee;
-      --color-success:   #22c55e;
-      --color-warn:      #f59e0b;
-      --color-danger:    #ef4444;
-      --color-text:      #e2e8f0;
-      --color-muted:     #8892a4;
-      --radius:          8px;
-      --shadow:          0 4px 24px rgba(0,0,0,.45);
-    }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: var(--color-bg);
-      color: var(--color-text);
-      min-height: 100vh;
-      font-size: 14px;
-      line-height: 1.5;
-    }
-
-    /* ── Login screen ───────────────────────────────────────────────────── */
-    #login-screen {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-    }
-
-    .login-card {
-      background: var(--color-surface);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius);
-      padding: 2.5rem 2rem;
-      width: 100%;
-      max-width: 380px;
-      box-shadow: var(--shadow);
-    }
-
-    .login-card h1 {
-      font-size: 1.3rem;
-      font-weight: 700;
-      margin-bottom: 0.25rem;
-      color: var(--color-text);
-    }
-
-    .login-card .subtitle {
-      color: var(--color-muted);
-      font-size: 0.85rem;
-      margin-bottom: 1.8rem;
-    }
-
-    .login-card label {
-      display: block;
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: var(--color-muted);
-      margin-bottom: 0.4rem;
-      text-transform: uppercase;
-      letter-spacing: .05em;
-    }
-
-    .login-card select,
-    .login-card input[type="password"] {
-      width: 100%;
-      padding: 0.65rem 0.85rem;
-      background: var(--color-bg);
-      border: 1px solid var(--color-border);
-      border-radius: 6px;
-      color: var(--color-text);
-      font-size: 0.9rem;
-      margin-bottom: 1.2rem;
-      outline: none;
-      transition: border-color .15s;
-    }
-
-    .login-card select:focus,
-    .login-card input[type="password"]:focus {
-      border-color: var(--color-accent);
-    }
-
-    .login-card .btn-login {
-      width: 100%;
-      padding: 0.75rem;
-      background: var(--color-accent);
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      font-size: 0.95rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background .15s;
-    }
-
-    .login-card .btn-login:hover { background: var(--color-accent-h); }
-    .login-card .btn-login:disabled { opacity: .5; cursor: not-allowed; }
-
-    .login-error {
-      color: var(--color-danger);
-      font-size: 0.85rem;
-      margin-top: 0.8rem;
-      min-height: 1.2em;
-    }
-
-    /* ── App shell ──────────────────────────────────────────────────────── */
-    #app-screen { display: none; flex-direction: column; min-height: 100vh; }
-
-    /* ── Status banner ──────────────────────────────────────────────────── */
-    #status-banner {
-      display: none;
-      padding: 0.55rem 1.2rem;
-      font-size: 0.82rem;
-      font-weight: 500;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    #status-banner.online  { background: #14532d; color: #bbf7d0; }
-    #status-banner.offline { background: #7c2d12; color: #fed7aa; display: flex; }
-    #status-banner.syncing { background: #1e3a5f; color: #bfdbfe; display: flex; }
-    #status-banner.info    { background: #1e293b; color: #cbd5e1; display: flex; }
-
-    /* ── Top bar ────────────────────────────────────────────────────────── */
-    .topbar {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      padding: 0.8rem 1.4rem;
-      background: var(--color-surface);
-      border-bottom: 1px solid var(--color-border);
-      flex-wrap: wrap;
-    }
-
-    .topbar h1 {
-      font-size: 1.05rem;
-      font-weight: 700;
-      flex: 1;
-      white-space: nowrap;
-    }
-
-    .topbar h1 span { color: var(--color-accent); }
-
-    /* ── Client switcher ────────────────────────────────────────────────── */
-    .client-switcher {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      background: var(--color-bg);
-      border: 1px solid var(--color-border);
-      border-radius: 6px;
-      padding: 0.35rem 0.6rem;
-    }
-
-    .client-switcher label {
-      font-size: 0.75rem;
-      color: var(--color-muted);
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: .04em;
-      white-space: nowrap;
-    }
-
-    .client-switcher select {
-      background: transparent;
-      border: none;
-      color: var(--color-text);
-      font-size: 0.88rem;
-      font-weight: 600;
-      outline: none;
-      cursor: pointer;
-      max-width: 180px;
-    }
-
-    .client-switcher select option { background: var(--color-surface); }
-
-    /* ── Sync & logout buttons ──────────────────────────────────────────── */
-    .btn-icon {
-      background: transparent;
-      border: 1px solid var(--color-border);
-      color: var(--color-muted);
-      border-radius: 6px;
-      padding: 0.35rem 0.7rem;
-      font-size: 0.8rem;
-      cursor: pointer;
-      transition: color .15s, border-color .15s;
-      white-space: nowrap;
-    }
-
-    .btn-icon:hover { color: var(--color-text); border-color: var(--color-accent); }
-
-    /* ── Main content ───────────────────────────────────────────────────── */
-    .main {
-      flex: 1;
-      padding: 1.4rem;
-      max-width: 1400px;
-      width: 100%;
-      margin: 0 auto;
-    }
-
-    /* ── Toolbar ────────────────────────────────────────────────────────── */
-    .toolbar {
-      display: flex;
-      gap: 0.75rem;
-      margin-bottom: 1.2rem;
-      flex-wrap: wrap;
-      align-items: center;
-    }
-
-    .toolbar input[type="text"] {
-      flex: 1;
-      min-width: 180px;
-      padding: 0.55rem 0.85rem;
-      background: var(--color-surface);
-      border: 1px solid var(--color-border);
-      border-radius: 6px;
-      color: var(--color-text);
-      font-size: 0.9rem;
-      outline: none;
-      transition: border-color .15s;
-    }
-
-    .toolbar input[type="text"]:focus { border-color: var(--color-accent); }
-
-    .btn-primary {
-      padding: 0.55rem 1.1rem;
-      background: var(--color-accent);
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      font-size: 0.88rem;
-      font-weight: 600;
-      cursor: pointer;
-      white-space: nowrap;
-      transition: background .15s;
-    }
-
-    .btn-primary:hover { background: var(--color-accent-h); }
-    .btn-primary:disabled { opacity: .45; cursor: not-allowed; }
-
-    .btn-secondary {
-      padding: 0.55rem 0.9rem;
-      background: transparent;
-      color: var(--color-muted);
-      border: 1px solid var(--color-border);
-      border-radius: 6px;
-      font-size: 0.85rem;
-      cursor: pointer;
-      transition: color .15s, border-color .15s;
-      white-space: nowrap;
-    }
-
-    .btn-secondary:hover { color: var(--color-text); border-color: var(--color-muted); }
-
-    /* ── Stats row ──────────────────────────────────────────────────────── */
-    .stats-row {
-      display: flex;
-      gap: 0.85rem;
-      margin-bottom: 1.2rem;
-      flex-wrap: wrap;
-    }
-
-    .stat-card {
-      background: var(--color-surface);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius);
-      padding: 0.8rem 1.1rem;
-      min-width: 130px;
-    }
-
-    .stat-card .stat-value {
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: var(--color-accent);
-    }
-
-    .stat-card .stat-label {
-      font-size: 0.75rem;
-      color: var(--color-muted);
-      text-transform: uppercase;
-      letter-spacing: .04em;
-    }
-
-    /* ── Lead form ──────────────────────────────────────────────────────── */
-    .lead-form-card {
-      background: var(--color-surface);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius);
-      padding: 1.2rem;
-      margin-bottom: 1.2rem;
-    }
-
-    .lead-form-card h2 {
-      font-size: 0.95rem;
-      font-weight: 700;
-      margin-bottom: 1rem;
-      color: var(--color-muted);
-      text-transform: uppercase;
-      letter-spacing: .06em;
-    }
-
-    .form-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-      gap: 0.85rem;
-    }
-
-    .form-group label {
-      display: block;
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: var(--color-muted);
-      margin-bottom: 0.3rem;
-      text-transform: uppercase;
-      letter-spacing: .04em;
-    }
-
-    .form-group input,
-    .form-group select,
-    .form-group textarea {
-      width: 100%;
-      padding: 0.55rem 0.75rem;
-      background: var(--color-bg);
-      border: 1px solid var(--color-border);
-      border-radius: 6px;
-      color: var(--color-text);
-      font-size: 0.88rem;
-      outline: none;
-      transition: border-color .15s;
-      font-family: inherit;
-    }
-
-    .form-group input:focus,
-    .form-group select:focus,
-    .form-group textarea:focus { border-color: var(--color-accent); }
-
-    .form-group textarea { resize: vertical; min-height: 72px; }
-
-    .form-actions {
-      display: flex;
-      gap: 0.6rem;
-      margin-top: 1rem;
-      justify-content: flex-end;
-    }
-
-    /* ── Leads table ────────────────────────────────────────────────────── */
-    .leads-section { }
-
-    .leads-section h2 {
-      font-size: 0.95rem;
-      font-weight: 700;
-      color: var(--color-muted);
-      text-transform: uppercase;
-      letter-spacing: .06em;
-      margin-bottom: 0.75rem;
-    }
-
-    .table-wrap {
-      overflow-x: auto;
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius);
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.85rem;
-    }
-
-    thead th {
-      background: var(--color-surface);
-      padding: 0.65rem 0.85rem;
-      text-align: left;
-      font-size: 0.72rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: .05em;
-      color: var(--color-muted);
-      border-bottom: 1px solid var(--color-border);
-      white-space: nowrap;
-      cursor: pointer;
-      user-select: none;
-    }
-
-    thead th:hover { color: var(--color-text); }
-
-    tbody tr {
-      border-bottom: 1px solid var(--color-border);
-      transition: background .1s;
-    }
-
-    tbody tr:last-child { border-bottom: none; }
-    tbody tr:hover { background: rgba(79,142,247,.06); }
-
-    tbody td {
-      padding: 0.65rem 0.85rem;
-      vertical-align: top;
-      max-width: 220px;
-    }
-
-    /* ── Status badge ───────────────────────────────────────────────────── */
-    .badge {
-      display: inline-block;
-      padding: 0.2rem 0.55rem;
-      border-radius: 4px;
-      font-size: 0.72rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: .04em;
-    }
-
-    .badge-new      { background: #1e3a5f; color: #93c5fd; }
-    .badge-contacted{ background: #3b2f00; color: #fcd34d; }
-    .badge-qualified{ background: #14532d; color: #86efac; }
-    .badge-lost     { background: #3b0a0a; color: #fca5a5; }
-    .badge-won      { background: #052e16; color: #4ade80; }
-    .badge-pending  { background: #3b2f00; color: #fcd34d; }
-
-    /* ── Row actions ────────────────────────────────────────────────────── */
-    .row-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; }
-
-    .btn-edit, .btn-delete {
-      border: none;
-      border-radius: 4px;
-      padding: 0.25rem 0.55rem;
-      font-size: 0.75rem;
-      cursor: pointer;
-      font-weight: 600;
-    }
-
-    .btn-edit   { background: #1e3a5f; color: #93c5fd; }
-    .btn-delete { background: #3b0a0a; color: #fca5a5; }
-    .btn-edit:hover   { background: #2a4f84; }
-    .btn-delete:hover { background: #5a1212; }
-
-    /* ── Enrichment & Golden lead ────────────────────────────────────────── */
-    tbody tr.golden-lead { background: rgba(34,197,94,.07); border-left: 3px solid #22c55e; }
-    tbody tr.golden-lead:hover { background: rgba(34,197,94,.12); }
-
-    .btn-enrich {
-      border: 1px solid #2d4a7f;
-      background: #1e3a5f;
-      color: #93c5fd;
-      border-radius: 4px;
-      padding: 0.25rem 0.55rem;
-      font-size: 0.75rem;
-      font-weight: 600;
-      cursor: pointer;
-      white-space: nowrap;
-      transition: background .15s;
-    }
-    .btn-enrich:hover     { background: #2d4a7f; }
-    .btn-enrich:disabled  { opacity: .5; cursor: not-allowed; }
-
-    .btn-bulk-enrich {
-      background: #14532d;
-      color: #86efac;
-      border: 1px solid #166534;
-      border-radius: 6px;
-      padding: 0.5rem 0.9rem;
-      font-size: 0.85rem;
-      font-weight: 600;
-      cursor: pointer;
-      white-space: nowrap;
-      transition: background .15s;
-    }
-    .btn-bulk-enrich:hover    { background: #166534; }
-    .btn-bulk-enrich:disabled { opacity: .5; cursor: not-allowed; }
-
-    /* enrichment status */
-    .enr-idle    { font-size:.72rem; color:var(--color-muted); }
-    .enr-pending { font-size:.72rem; color:#93c5fd; }
-    .enr-success { font-size:.72rem; color:#86efac; }
-    .enr-failed  { font-size:.72rem; color:#fca5a5; cursor:pointer; }
-
-    /* score badge */
-    .score-badge {
-      display: inline-block;
-      font-size: .75rem;
-      font-weight: 700;
-      padding: .15rem .4rem;
-      border-radius: 4px;
-      white-space: nowrap;
-    }
-    .score-high { background:#14532d; color:#86efac; }
-    .score-mid  { background:#713f12; color:#fde68a; }
-    .score-low  { background:#1e293b; color:var(--color-muted); }
-
-    /* ── Company/LLC warning badge ──────────────────────────────────────── */
-    .badge-company {
-      display: inline-block;
-      font-size: .65rem;
-      font-weight: 700;
-      padding: .1rem .35rem;
-      border-radius: 3px;
-      background: #3b2000;
-      color: #fb923c;
-      border: 1px solid #7c3400;
-      white-space: nowrap;
-      margin-left: 4px;
-      vertical-align: middle;
-      letter-spacing: .03em;
-    }
-
-    /* ── Enriched contact info (shown after ⚡ Enrich) ───────────────────── */
-    .enr-phone {
-      font-size: .72rem;
-      color: #86efac;
-      white-space: nowrap;
-    }
-    .enr-owner-name {
-      font-size: .7rem;
-      color: #93c5fd;
-      margin-top: 2px;
-      line-height: 1.3;
-    }
-    .enr-no-gc {
-      font-size: .65rem;
-      color: #4ade80;
-      font-weight: 700;
-    }
-    .enr-has-gc {
-      font-size: .65rem;
-      color: #fbbf24;
-    }
-
-    .permit-tag {
-      font-family: monospace;
-      font-size: .75rem;
-      color: var(--color-muted);
-    }
-
-    /* actor health pill in topbar */
-    #actor-status {
-      font-size: .75rem;
-      padding: .3rem .6rem;
-      border-radius: 5px;
-      font-weight: 600;
-      white-space: nowrap;
-      cursor: pointer;
-      border: 1px solid transparent;
-    }
-    .actor-ok   { background: #14532d; color: #86efac; border-color: #166534; }
-    .actor-down { background: #3b0a0a; color: #fca5a5; border-color: #5a1212; }
-    .actor-chk  { background: #1e293b; color: var(--color-muted); border-color: var(--color-border); }
-
-    /* ── Empty state ────────────────────────────────────────────────────── */
-    .empty-state {
-      text-align: center;
-      padding: 3rem 1rem;
-      color: var(--color-muted);
-    }
-
-    .empty-state .icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
-
-    /* ── Confirm dialog overlay ─────────────────────────────────────────── */
-    #confirm-overlay {
-      display: none;
-      position: fixed; inset: 0;
-      background: rgba(0,0,0,.65);
-      z-index: 100;
-      align-items: center;
-      justify-content: center;
-    }
-
-    #confirm-overlay.show { display: flex; }
-
-    .confirm-dialog {
-      background: var(--color-surface);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius);
-      padding: 1.8rem;
-      max-width: 400px;
-      width: 90%;
-      box-shadow: var(--shadow);
-    }
-
-    .confirm-dialog h3 { margin-bottom: 0.5rem; }
-    .confirm-dialog p  { color: var(--color-muted); font-size: 0.88rem; margin-bottom: 1.4rem; }
-    .confirm-dialog .actions { display: flex; gap: 0.6rem; justify-content: flex-end; }
-
-    .btn-danger {
-      padding: 0.55rem 1rem;
-      background: var(--color-danger);
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      font-size: 0.88rem;
-      font-weight: 600;
-      cursor: pointer;
-    }
-
-    .btn-danger:hover { background: #dc2626; }
-
-    /* ── Misc ───────────────────────────────────────────────────────────── */
-    .pending-dot::after {
-      content: ' •';
-      color: var(--color-warn);
-    }
-
-    .truncate {
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .text-muted { color: var(--color-muted); }
-
-    @media (max-width: 600px) {
-      .topbar { flex-direction: column; align-items: flex-start; }
-      .form-grid { grid-template-columns: 1fr; }
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="author" content="Andres Alkan — Alkan Construction Assistant">
+<meta name="copyright" content="© Andres Alkan / Alkan Construction Assistant. All rights reserved.">
+<title>Alkan Lead Hunter v11-EB · Envision Builders Edition</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,700&family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+  const SUPABASE_URL = 'https://qyesctuksvtblegkinrj.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF5ZXNjdHVrc3Z0YmxlZ2tpbnJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2NzU5NzEsImV4cCI6MjA5NTI1MTk3MX0.ENr_6um5ob3COrgiJrI67EAetch8Yutf_by7FY1gDMM';
+  const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+</script>
+<style>
+:root {
+  --bg: #0a0d14;
+  --bg2: #0d1119;
+  --surface: #0f1320;
+  --surface2: #161c2d;
+  --surface3: #1f2740;
+  --border: #1e2536;
+  --border2: #2a3450;
+  --text: #e4e8f1;
+  --text2: #8b96b3;
+  --text3: #4d5973;
+  --alkan: #2A4F82;
+  --alkan2: #5a8fd6;
+  --alkan-glow: rgba(90,143,214,0.15);
+  --gold: #d4a651;
+  --gold2: #f0c878;
+  --eb-green: #2d8659;   /* Envision Builders accent */
+  --eb-green2: #4eb37e;
+  --hot: #ef4444;
+  --warm: #f59e0b;
+  --green: #10b981;
+  --rose: #f43f5e;
+  --purple: #8b5cf6;
+  --teal: #2dd4bf;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  min-height: 100vh;
+}
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background:
+    radial-gradient(ellipse 1000px 600px at 15% -10%, var(--alkan-glow), transparent),
+    radial-gradient(ellipse 800px 600px at 90% 110%, rgba(78,179,126,0.05), transparent),
+    linear-gradient(180deg, transparent, rgba(0,0,0,0.3));
+  pointer-events: none;
+  z-index: 0;
+}
+body::after {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.025;
+  mix-blend-mode: overlay;
+}
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; }
+
+/* ═══ HEADER ═══ */
+.header {
+  background: rgba(10,13,20,0.85);
+  backdrop-filter: blur(24px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 28px;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+.logo {
+  font-family: 'Fraunces', serif;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+.logo .blue { color: var(--alkan2); }
+.logo .gold { color: var(--gold2); }
+.tagline {
+  font-size: 10px;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-top: 4px;
+}
+.client-badge {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, rgba(45,134,89,0.15), rgba(78,179,126,0.05));
+  border: 1px solid rgba(78,179,126,0.4);
+  border-radius: 10px;
+}
+.client-badge-dot {
+  width: 8px; height: 8px;
+  background: var(--eb-green2);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--eb-green2);
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%,100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+.client-badge-name {
+  font-family: 'Fraunces', serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--eb-green2);
+}
+.client-badge-sub {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text3);
+}
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-left: 30px;
+}
+.tab {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text2);
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s;
+}
+.tab:hover { color: var(--text); background: var(--surface2); }
+.tab.active {
+  background: var(--surface3);
+  border-color: var(--border2);
+  color: var(--eb-green2);
+}
+.tab .badge {
+  background: var(--surface3);
+  padding: 2px 7px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  min-width: 18px;
+  text-align: center;
+}
+.tab.active .badge {
+  background: rgba(78,179,126,0.2);
+  color: var(--eb-green2);
+}
+
+/* ═══ LAYOUT ═══ */
+.layout {
+  position: relative;
+  z-index: 1;
+  padding: 24px 28px 60px;
+  max-width: 1640px;
+  margin: 0 auto;
+}
+.view { display: none; }
+.view.active { display: block; }
+
+/* ═══ HUNT BAR ═══ */
+.hunt-bar {
+  background: linear-gradient(135deg, var(--surface) 0%, var(--surface2) 100%);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 22px 26px;
+  margin-bottom: 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+.hunt-eyebrow {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--eb-green2);
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.hunt-title {
+  font-family: 'Fraunces', serif;
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin-bottom: 14px;
+}
+.hunt-title em { color: var(--eb-green2); font-style: normal; }
+.source-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.chip {
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  color: var(--text2);
+  padding: 7px 13px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s;
+}
+.chip:hover { border-color: var(--eb-green); color: var(--text); }
+.chip.active {
+  background: rgba(45,134,89,0.15);
+  border-color: var(--eb-green);
+  color: var(--eb-green2);
+}
+.chip .icon { font-size: 14px; }
+.chip-help {
+  font-size: 10px;
+  color: var(--text3);
+  font-weight: 400;
+}
+.chip.active .chip-help { color: rgba(78,179,126,0.7); }
+.hunt-actions {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.btn-hunt {
+  background: linear-gradient(135deg, var(--eb-green) 0%, var(--eb-green2) 100%);
+  border: none;
+  color: white;
+  padding: 12px 22px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  box-shadow: 0 4px 12px rgba(45,134,89,0.3);
+  transition: all 0.15s;
+}
+.btn-hunt:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(45,134,89,0.45); }
+.btn-hunt.stop {
+  background: linear-gradient(135deg, var(--rose) 0%, var(--hot) 100%);
+  box-shadow: 0 4px 12px rgba(244,63,94,0.35);
+}
+.btn-ghost {
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  color: var(--text2);
+  padding: 11px 16px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-ghost:hover { color: var(--text); border-color: var(--eb-green); }
+
+/* ═══ STATUS BAR ═══ */
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 18px;
+  font-size: 12px;
+  flex-wrap: wrap;
+}
+.status-state {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.status-state.idle { background: var(--surface3); color: var(--text2); }
+.status-state.running { background: rgba(78,179,126,0.15); color: var(--eb-green2); }
+.status-state.error { background: rgba(244,63,94,0.15); color: var(--rose); }
+.pulse-dot {
+  width: 6px; height: 6px;
+  background: currentColor;
+  border-radius: 50%;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+.status-msg {
+  flex: 1;
+  color: var(--text2);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+}
+.status-stats {
+  display: flex;
+  gap: 14px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text3);
+}
+.status-stats b { color: var(--eb-green2); }
+
+/* ═══ KPIs ═══ */
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.kpi {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 20px;
+  position: relative;
+  overflow: hidden;
+}
+.kpi::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, transparent 50%, rgba(255,255,255,0.02) 100%);
+  pointer-events: none;
+}
+.kpi.qualified { border-color: rgba(78,179,126,0.3); }
+.kpi.qualified .kpi-value { color: var(--eb-green2); }
+.kpi.prepermit { border-color: rgba(245,158,11,0.3); }
+.kpi.prepermit .kpi-value { color: var(--warm); }
+.kpi.enrich { border-color: rgba(139,92,246,0.3); }
+.kpi.enrich .kpi-value { color: var(--purple); }
+.kpi.handoff { border-color: rgba(212,166,81,0.3); }
+.kpi.handoff .kpi-value { color: var(--gold2); }
+.kpi-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text3);
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.kpi-value {
+  font-family: 'Fraunces', serif;
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.kpi-sub {
+  font-size: 11px;
+  color: var(--text2);
+}
+
+/* ═══ TOOLBAR ═══ */
+.view-toolbar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.toolbar-input, .toolbar-select {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.toolbar-input:focus, .toolbar-select:focus { border-color: var(--eb-green); }
+.toolbar-input { flex: 1; min-width: 200px; }
+.toolbar-toggle {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  color: var(--text2);
+  padding: 9px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.toolbar-toggle.on {
+  background: rgba(78,179,126,0.15);
+  border-color: var(--eb-green);
+  color: var(--eb-green2);
+}
+
+/* ═══ LEAD LIST ═══ */
+.lead-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.lead-row {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 18px;
+  display: grid;
+  grid-template-columns: 68px 1fr auto auto auto;  /* score | body | state | date | actions+quickbtns */
+  gap: 14px;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.lead-row:hover {
+  border-color: var(--eb-green);
+  background: var(--surface2);
+}
+.lead-row.selected { border-color: var(--eb-green2); }
+.lead-row.qualified { border-left: 3px solid var(--eb-green); }
+.lead-score {
+  text-align: center;
+  background: var(--surface3);
+  border-radius: 10px;
+  padding: 10px 6px;
+}
+.lead-score .num {
+  font-family: 'Fraunces', serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--eb-green2);
+  line-height: 1;
+}
+.lead-score .lbl {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text3);
+  margin-top: 4px;
+  font-weight: 700;
+}
+.lead-body { min-width: 0; }
+.lead-title {
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 4px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lead-meta {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: var(--text2);
+  align-items: center;
+}
+.lead-tag {
+  padding: 2px 7px;
+  border-radius: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.tag-cat-multifamily { background: rgba(45,134,89,0.18); color: var(--eb-green2); }
+.tag-cat-sfr { background: rgba(90,143,214,0.18); color: var(--alkan2); }
+.tag-cat-adu { background: rgba(45,212,191,0.18); color: var(--teal); }
+.tag-cat-townhome { background: rgba(139,92,246,0.18); color: var(--purple); }
+.tag-cat-commercial { background: rgba(212,166,81,0.18); color: var(--gold2); }
+.tag-cat-affordable { background: rgba(244,63,94,0.18); color: var(--rose); }
+.tag-cat-default { background: var(--surface3); color: var(--text2); }
+.tag-source { background: var(--surface3); color: var(--text2); }
+.tag-status-prepermit { background: rgba(245,158,11,0.18); color: var(--warm); }
+.tag-status-review { background: rgba(139,92,246,0.18); color: var(--purple); }
+.tag-status-issued { background: rgba(75,85,99,0.3); color: var(--text3); }
+.intent-badge {
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.intent-hot { background: rgba(239,68,68,0.18); color: var(--hot); }
+.intent-warm { background: rgba(245,158,11,0.18); color: var(--warm); }
+.intent-cold { background: var(--surface3); color: var(--text3); }
+.urgent-flag {
+  background: rgba(239,68,68,0.2);
+  color: var(--hot);
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  animation: pulse 2s ease-in-out infinite;
+}
+.no-contractor-flag {
+  background: rgba(78,179,126,0.2);
+  color: var(--eb-green2);
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 700;
+}
+.why-strip {
+  margin-top: 8px;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.why-chip {
+  background: rgba(78,179,126,0.08);
+  border: 1px solid rgba(78,179,126,0.2);
+  color: var(--eb-green2);
+  padding: 3px 9px;
+  border-radius: 5px;
+  font-size: 10px;
+  font-weight: 500;
+}
+.why-chip.warn {
+  background: rgba(245,158,11,0.08);
+  border-color: rgba(245,158,11,0.2);
+  color: var(--warm);
+}
+.enrichment-strip {
+  margin-top: 6px;
+  font-size: 10px;
+  color: var(--text3);
+  font-family: 'JetBrains Mono', monospace;
+}
+.enrichment-strip b { color: var(--text2); }
+.enrichment-strip .missing { color: var(--warm); }
+.enrichment-strip .ok { color: var(--eb-green2); }
+.lead-state {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 5px 10px;
+  border-radius: 6px;
+  background: var(--surface3);
+  color: var(--text2);
+  white-space: nowrap;
+}
+.state-new { background: var(--surface3); color: var(--text2); }
+.state-contacted { background: rgba(90,143,214,0.18); color: var(--alkan2); }
+.state-qualified { background: rgba(78,179,126,0.18); color: var(--eb-green2); }
+.state-handoff { background: rgba(212,166,81,0.18); color: var(--gold2); }
+.state-won { background: rgba(16,185,129,0.18); color: var(--green); }
+.state-lost { background: rgba(244,63,94,0.18); color: var(--rose); }
+.lead-date {
+  font-size: 11px;
+  color: var(--text3);
+  white-space: nowrap;
+  font-family: 'JetBrains Mono', monospace;
+}
+.lead-actions {
+  display: flex;
+  gap: 6px;
+}
+.icon-btn {
+  width: 32px; height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.15s;
+  font-size: 14px;
+}
+.icon-btn:hover { color: var(--eb-green2); border-color: var(--eb-green); }
+
+/* ═══ QUICK ACTION BUTTONS (Approve / Discard) ═══ */
+.quick-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+  align-items: center;
+}
+.btn-approve, .btn-discard {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  border: none;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 10px 14px;
+  transition: all 0.18s;
+  white-space: nowrap;
+  font-family: inherit;
+  min-height: 44px;
+  letter-spacing: 0.02em;
+}
+.btn-approve {
+  background: linear-gradient(135deg, var(--eb-green) 0%, var(--eb-green2) 100%);
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(45,134,89,0.35);
+}
+.btn-approve:hover { transform: translateY(-1px); box-shadow: 0 5px 14px rgba(45,134,89,0.5); }
+.btn-approve:active { transform: scale(0.97); }
+.btn-approve.done {
+  background: rgba(45,134,89,0.18);
+  border: 1.5px solid var(--eb-green);
+  color: var(--eb-green2);
+  box-shadow: none;
+}
+.btn-discard {
+  background: rgba(244,63,94,0.1);
+  border: 1px solid rgba(244,63,94,0.3);
+  color: var(--rose);
+}
+.btn-discard:hover { background: rgba(244,63,94,0.2); border-color: var(--rose); }
+.btn-discard:active { transform: scale(0.97); }
+.btn-discard.done {
+  opacity: 0.45;
+}
+
+/* ═══ VETTED CONTACT BADGE ═══ */
+.vetted-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: linear-gradient(135deg, rgba(45,134,89,0.25) 0%, rgba(78,179,126,0.12) 100%);
+  border: 1.5px solid var(--eb-green2);
+  color: var(--eb-green2);
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  box-shadow: 0 0 8px rgba(78,179,126,0.2);
+  animation: vetted-glow 2.5s ease-in-out infinite;
+}
+@keyframes vetted-glow {
+  0%,100% { box-shadow: 0 0 5px rgba(78,179,126,0.15); }
+  50% { box-shadow: 0 0 14px rgba(78,179,126,0.45); }
+}
+
+/* ═══ GC VERIFICATION MODULE ═══ */
+.gc-verify-panel {
+  background: linear-gradient(135deg, rgba(10,13,20,0.9) 0%, rgba(15,19,32,0.95) 100%);
+  border: 1px solid var(--border2);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-top: 12px;
+}
+.gc-verify-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: rgba(42,79,130,0.2);
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+.gc-verify-header:hover { background: rgba(42,79,130,0.35); }
+.gc-verify-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--alkan2);
+  flex: 1;
+}
+.gc-verify-status {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.gc-status-unknown { background: var(--surface3); color: var(--text3); }
+.gc-status-confirmed-none { background: rgba(16,185,129,0.2); color: var(--green); }
+.gc-status-has-gc { background: rgba(239,68,68,0.2); color: var(--hot); }
+.gc-status-pending { background: rgba(245,158,11,0.15); color: var(--warm); }
+.gc-status-error { background: rgba(244,63,94,0.15); color: var(--rose); }
+.gc-verify-body {
+  padding: 14px 16px;
+  display: none;
+}
+.gc-verify-body.open { display: block; }
+.gc-source-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.gc-source-row:last-child { border-bottom: none; }
+.gc-source-icon {
+  width: 28px; height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.gc-source-icon.portal { background: rgba(42,79,130,0.3); }
+.gc-source-icon.parcel { background: rgba(45,134,89,0.25); }
+.gc-source-icon.accela { background: rgba(139,92,246,0.2); }
+.gc-source-info { flex: 1; min-width: 0; }
+.gc-source-name {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+.gc-source-detail {
+  font-size: 10px;
+  color: var(--text2);
+  font-family: 'JetBrains Mono', monospace;
+  line-height: 1.5;
+}
+.gc-source-detail .gc-found { color: var(--hot); font-weight: 700; }
+.gc-source-detail .gc-none { color: var(--green); font-weight: 700; }
+.gc-source-detail .gc-pending { color: var(--warm); }
+.gc-source-time { font-size: 9px; color: var(--text3); white-space: nowrap; }
+.gc-verify-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+.gc-btn {
+  background: var(--surface3);
+  border: 1px solid var(--border2);
+  color: var(--text2);
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.gc-btn:hover { color: var(--alkan2); border-color: var(--alkan); }
+.gc-btn.primary {
+  background: linear-gradient(135deg, var(--alkan) 0%, var(--alkan2) 100%);
+  border: none;
+  color: white;
+  font-weight: 700;
+  box-shadow: 0 3px 10px rgba(42,79,130,0.4);
+}
+.gc-btn.primary:hover { transform: translateY(-1px); box-shadow: 0 5px 14px rgba(42,79,130,0.55); }
+.gc-spinner {
+  width: 14px; height: 14px;
+  border: 2px solid rgba(90,143,214,0.3);
+  border-top-color: var(--alkan2);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ═══ DATA CONFIDENCE REPORT ═══ */
+.confidence-bar-wrap {
+  margin: 12px 0;
+}
+.confidence-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--text2);
+  margin-bottom: 5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+.confidence-bar {
+  height: 6px;
+  background: var(--surface3);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.confidence-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.8s ease;
+}
+.conf-high { background: linear-gradient(90deg, var(--green), var(--eb-green2)); }
+.conf-mid { background: linear-gradient(90deg, var(--warm), #f0c878); }
+.conf-low { background: linear-gradient(90deg, var(--hot), var(--rose)); }
+.data-source-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border: 1px solid;
+}
+.dsb-live { background: rgba(16,185,129,0.12); border-color: rgba(16,185,129,0.4); color: var(--green); }
+.dsb-portal { background: rgba(42,79,130,0.15); border-color: rgba(90,143,214,0.4); color: var(--alkan2); }
+.dsb-manual { background: rgba(245,158,11,0.12); border-color: rgba(245,158,11,0.35); color: var(--warm); }
+.dsb-inferred { background: var(--surface3); border-color: var(--border2); color: var(--text3); }
+
+/* ═══ GEOGRAPHIC PROXIMITY BADGE ═══ */
+.geo-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(90,143,214,0.18);
+  border: 1px solid rgba(90,143,214,0.4);
+  color: var(--alkan2);
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ═══ LEAD ROW APPROVED/DISCARDED STATES ═══ */
+.lead-row.approved {
+  border-left: 3px solid var(--eb-green2);
+  background: linear-gradient(90deg, rgba(45,134,89,0.05), transparent);
+}
+.lead-row.discarded {
+  opacity: 0.42;
+  filter: saturate(0.3);
+}
+.lead-row.discarded:hover { opacity: 0.65; }
+
+/* ═══ EMPTY STATE ═══ */
+.empty-msg {
+  text-align: center;
+  padding: 60px 30px;
+  background: var(--surface);
+  border: 1px dashed var(--border2);
+  border-radius: 14px;
+}
+.em-eyebrow {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--eb-green2);
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.em-title {
+  font-family: 'Fraunces', serif;
+  font-size: 22px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+.empty-msg p {
+  color: var(--text2);
+  max-width: 540px;
+  margin: 0 auto;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* ═══ DRAWER ═══ */
+.drawer-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 50;
+  align-items: stretch;
+  justify-content: flex-end;
+  backdrop-filter: blur(6px);
+}
+.drawer-overlay.on { display: flex; }
+.drawer {
+  background: var(--bg2);
+  border-left: 1px solid var(--border);
+  width: min(720px, 100%);
+  height: 100vh;
+  overflow-y: auto;
+  position: relative;
+}
+.drawer-close {
+  position: absolute;
+  top: 16px; right: 16px;
+  width: 34px; height: 34px;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  color: var(--text2);
+  cursor: pointer;
+  font-size: 14px;
+  z-index: 2;
+}
+.drawer-close:hover { border-color: var(--rose); color: var(--rose); }
+.drawer-content { padding: 28px 32px; }
+.drawer-eyebrow {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: var(--eb-green2);
+}
+.drawer-title {
+  font-family: 'Fraunces', serif;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin-bottom: 10px;
+  line-height: 1.25;
+}
+.drawer-sub {
+  color: var(--text2);
+  font-size: 13px;
+  line-height: 1.6;
+  margin-bottom: 16px;
+}
+.drawer-meta-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.drawer-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 20px;
+  margin-bottom: 14px;
+}
+.drawer-section-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--eb-green2);
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+.dr-field {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px dashed var(--border);
+  font-size: 12px;
+}
+.dr-field:last-child { border-bottom: none; }
+.dr-field-label {
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  font-size: 10px;
+  align-self: center;
+}
+.dr-field-value {
+  color: var(--text);
+  font-weight: 500;
+  text-align: right;
+  max-width: 65%;
+  word-break: break-word;
+}
+.dr-field-value.missing { color: var(--warm); font-style: italic; }
+.dr-field-value.ok { color: var(--eb-green2); }
+.dr-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+.dr-btn {
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  padding: 9px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+.dr-btn:hover { border-color: var(--eb-green); }
+.dr-btn.primary {
+  background: linear-gradient(135deg, var(--eb-green) 0%, var(--eb-green2) 100%);
+  border-color: transparent;
+  color: white;
+}
+.dr-btn.warn { color: var(--warm); border-color: rgba(245,158,11,0.3); }
+.dr-btn.danger { color: var(--rose); border-color: rgba(244,63,94,0.3); }
+.brief-output {
+  background: #050709;
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  padding: 16px;
+  margin-top: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  color: var(--text);
+  max-height: 480px;
+  overflow-y: auto;
+}
+.search-links {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 6px;
+  margin-top: 8px;
+}
+.search-link {
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  color: var(--text2);
+  padding: 8px 10px;
+  border-radius: 7px;
+  font-size: 11px;
+  text-align: center;
+  transition: all 0.15s;
+}
+.search-link:hover { color: var(--text); border-color: var(--eb-green); }
+
+/* ═══ FOOTER ═══ */
+.alkan-footer {
+  margin-top: 60px;
+  padding: 30px 28px;
+  border-top: 1px solid var(--border);
+  background: rgba(10,13,20,0.6);
+}
+.alkan-footer-inner {
+  max-width: 1640px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 20px;
+  font-size: 11px;
+  color: var(--text3);
+}
+.alkan-footer-logo {
+  font-family: 'Fraunces', serif;
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  color: var(--text2);
+}
+.alkan-footer-logo .blue { color: var(--alkan2); }
+.alkan-footer-logo .gold { color: var(--gold2); }
+.alkan-footer-by { color: var(--text3); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; }
+.alkan-footer-contact a { color: var(--text2); }
+.alkan-footer-contact a:hover { color: var(--eb-green2); }
+.alkan-footer-copy { margin-top: 6px; font-size: 10px; }
+.alkan-footer-tech { margin-top: 2px; font-size: 9px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; }
+
+@media (max-width: 880px) {
+  .lead-row {
+    grid-template-columns: 56px 1fr;
+    padding: 12px 14px;
+    gap: 10px;
+  }
+  .lead-state, .lead-date { display: none; }
+  .lead-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+    border-top: 1px solid var(--border);
+    padding-top: 10px;
+    margin-top: 4px;
+  }
+  .quick-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+  .btn-approve, .btn-discard {
+    flex: 1;
+    justify-content: center;
+    font-size: 13px;
+    min-height: 48px;
+    border-radius: 12px;
+  }
+  .hunt-bar { flex-direction: column; }
+  .lead-title { font-size: 11px !important; }
+  .header { padding: 0 14px; gap: 10px; }
+  .tabs { margin-left: 0; gap: 2px; }
+  .tab { padding: 6px 10px; font-size: 11px; }
+  .client-badge { display: none; }
+  .layout { padding: 14px 14px 60px; }
+}
+
+/* ═══ PERSISTENCE ADVISORY BANNER ═══ */
+.persistence-advisory {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(135deg, rgba(212,166,81,0.1), rgba(240,200,120,0.06));
+  border: 1px solid rgba(212,166,81,0.35);
+  border-radius: 10px;
+  padding: 10px 16px;
+  margin-bottom: 14px;
+  font-size: 11px;
+  color: var(--gold2);
+}
+.persistence-advisory .pa-icon { font-size: 14px; flex-shrink: 0; }
+.persistence-advisory .pa-text { flex: 1; line-height: 1.5; }
+.persistence-advisory .pa-text b { color: var(--gold2); }
+.persistence-advisory .pa-dismiss {
+  background: transparent;
+  border: 1px solid rgba(212,166,81,0.4);
+  color: var(--gold2);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 10px;
+  cursor: pointer;
+  flex-shrink: 0;
+  font-family: inherit;
+}
+.persistence-advisory.hidden { display: none; }
+</style>
 </head>
 <body>
 
-<!-- ══════════════════════════════════════════════════════════════════════════
-     LOGIN SCREEN
-     ════════════════════════════════════════════════════════════════════════ -->
-<div id="login-screen">
-  <div class="login-card">
-    <h1>Alkan Lead Hunter</h1>
-    <p class="subtitle">v11-EB &mdash; Sign in to continue</p>
-
-    <label for="login-client-select">Client</label>
-    <select id="login-client-select"></select>
-
-    <label for="login-password">Password</label>
-    <input type="password" id="login-password" placeholder="Password" autocomplete="current-password" />
-
-    <button class="btn-login" id="btn-login">Sign In</button>
-    <div class="login-error" id="login-error"></div>
+<header class="header">
+  <div>
+    <div class="logo">Alkan <span class="blue">Lead</span> <span class="gold">Hunter</span></div>
+    <div class="tagline">v12-EB · Envision Builders Edition · Pre-Permit Intelligence · WA Statewide</div>
   </div>
-</div>
-
-<!-- ══════════════════════════════════════════════════════════════════════════
-     APP SCREEN
-     ════════════════════════════════════════════════════════════════════════ -->
-<div id="app-screen">
-
-  <!-- Status banner -->
-  <div id="status-banner" role="alert"></div>
-
-  <!-- Top bar -->
-  <header class="topbar">
-    <h1>Alkan Lead <span>Hunter</span> <small class="text-muted" style="font-weight:400;font-size:.75rem">v11-EB</small></h1>
-
-    <!-- Actor health pill — click to re-check -->
-    <div id="actor-status" class="actor-chk" title="Click to re-check actor status">⚡ Actor: checking…</div>
-
-    <!-- Client switcher -->
-    <div class="client-switcher" id="client-switcher-wrap">
-      <label for="client-select">Client:</label>
-      <select id="client-select"></select>
+  <div class="tabs">
+    <button class="tab active" data-view="hunt"><span>🎯</span> Hunt <span class="badge" id="tabHuntBadge">0</span></button>
+    <button class="tab" data-view="pipeline"><span>📋</span> Pipeline <span class="badge" id="tabPipeBadge">0</span></button>
+    <button class="tab" data-view="handoffs"><span>🤝</span> Handoffs <span class="badge" id="tabHandoffBadge">0</span></button>
+    <button class="tab" data-view="edms"><span>📄</span> Doc Extractor</button>
+    <button class="tab" data-view="report"><span>📊</span> Weekly Report</button>
+  </div>
+  <div class="client-badge">
+    <div class="client-badge-dot"></div>
+    <div>
+      <div class="client-badge-name">ENVISION BUILDERS LLC</div>
+      <div class="client-badge-sub">Tim Kairez · Bonney Lake, WA</div>
     </div>
+  </div>
+</header>
 
-    <button class="btn-icon" id="btn-sync" title="Manually push queued offline changes">Sync</button>
-    <button class="btn-icon" id="btn-logout">Sign Out</button>
-  </header>
+<div class="layout">
 
-  <div class="main">
+  <!-- ═══════════════════════════════════ HUNT VIEW ═══════════════════════════════════ -->
+  <div class="view active" id="view-hunt">
 
-    <!-- Stats row -->
-    <div class="stats-row">
-      <div class="stat-card">
-        <div class="stat-value" id="stat-total">0</div>
-        <div class="stat-label">Total Leads</div>
+    <div class="hunt-bar">
+      <div style="flex:1;min-width:280px">
+        <div class="hunt-eyebrow">Multi-source pre-permit extraction</div>
+        <div class="hunt-title">Pipeline opportunities <em>before</em> they have a GC.</div>
+        <div class="source-chips" id="sourceChips">
+          <!-- Tier 1 — Active API/Socrata -->
+          <button class="chip active" data-source="seattle_dci_application"><span class="icon">🏗</span> Seattle DCI <span class="chip-help">Socrata live</span></button>
+          <button class="chip active" data-source="king_county"><span class="icon">🏛</span> King County <span class="chip-help">unincorporated</span></button>
+          <button class="chip active" data-source="pierce_county"><span class="icon">🏛</span> Pierce County <span class="chip-help">Tim's backyard</span></button>
+          <button class="chip active" data-source="snohomish_county"><span class="icon">🏛</span> Snohomish <span class="chip-help">N. Puget Sound</span></button>
+          <!-- Tier 2 — MyBuildingPermit hub -->
+          <button class="chip" data-source="mybuildingpermit"><span class="icon">🏙</span> MyBuildingPermit <span class="chip-help">Bellevue · Renton · Kirkland +12</span></button>
+          <!-- Tier 2 — Individual portals -->
+          <button class="chip" data-source="clark_county"><span class="icon">🏛</span> Clark Co. <span class="chip-help">Vancouver WA</span></button>
+          <button class="chip" data-source="spokane"><span class="icon">🏛</span> Spokane <span class="chip-help">city + county</span></button>
+          <button class="chip" data-source="thurston_county"><span class="icon">🏛</span> Thurston <span class="chip-help">Olympia area</span></button>
+          <button class="chip" data-source="whatcom_skagit"><span class="icon">🏛</span> Whatcom/Skagit <span class="chip-help">Tyler platform</span></button>
+          <button class="chip" data-source="kitsap_county"><span class="icon">🚢</span> Kitsap <span class="chip-help">Bremerton</span></button>
+          <button class="chip" data-source="yakima_benton"><span class="icon">🏜</span> Yakima/Tri-Cities <span class="chip-help">Eastern WA</span></button>
+          <!-- State-level -->
+          <button class="chip" data-source="lni_wa"><span class="icon">📋</span> WA L&amp;I <span class="chip-help">contractor verify</span></button>
+          <button class="chip" data-source="affordable_housing"><span class="icon">🏘</span> Affordable Housing <span class="chip-help">WSHFC / KCHA</span></button>
+        </div>
       </div>
-      <div class="stat-card">
-        <div class="stat-value" id="stat-new">0</div>
-        <div class="stat-label">New</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value" id="stat-qualified">0</div>
-        <div class="stat-label">Qualified</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value" id="stat-won">0</div>
-        <div class="stat-label">Won</div>
-      </div>
-      <div class="stat-card" style="border-color:#166534">
-        <div class="stat-value" id="stat-golden" style="color:#22c55e">0</div>
-        <div class="stat-label">🏆 Golden (pre-GC)</div>
-      </div>
-      <div class="stat-card" id="stat-queued-card" style="display:none">
-        <div class="stat-value" id="stat-queued" style="color:var(--color-warn)">0</div>
-        <div class="stat-label">Queued (offline)</div>
+      <div class="hunt-actions">
+        <button class="btn-hunt" id="btnHunt" onclick="startHunt()">▶ Start Hunt</button>
+        <button class="btn-ghost" onclick="clearAll()">⟲ Clear All</button>
+        <button class="btn-ghost" onclick="localStorage.removeItem('eb_seeded_v9'); seedDemoLeads()" title="Re-seed sample leads">🤖 Re-seed Demo</button>
       </div>
     </div>
 
-    <!-- Lead form -->
-    <div class="lead-form-card">
-      <h2 id="form-title">Add Lead</h2>
-      <input type="hidden" id="lead-id" />
-      <div class="form-grid">
-        <div class="form-group">
-          <label for="f-name">Name *</label>
-          <input type="text" id="f-name" placeholder="Full name" />
-        </div>
-        <div class="form-group">
-          <label for="f-company">Company</label>
-          <input type="text" id="f-company" placeholder="Company name" />
-        </div>
-        <div class="form-group">
-          <label for="f-email">Email</label>
-          <input type="text" id="f-email" placeholder="email@example.com" />
-        </div>
-        <div class="form-group">
-          <label for="f-phone">Phone</label>
-          <input type="text" id="f-phone" placeholder="+1 (555) 000-0000" />
-        </div>
-        <div class="form-group">
-          <label for="f-status">Status</label>
-          <select id="f-status">
-            <option value="new">New</option>
-            <option value="contacted">Contacted</option>
-            <option value="qualified">Qualified</option>
-            <option value="won">Won</option>
-            <option value="lost">Lost</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="f-source">Source</label>
-          <input type="text" id="f-source" placeholder="Referral, Web, etc." />
-        </div>
-        <!-- ── Enrichment fields ── -->
-        <div class="form-group">
-          <label for="f-permit">Permit # <small style="color:#4f8ef7;font-weight:400;text-transform:none">(for ⚡ Enrich)</small></label>
-          <input type="text" id="f-permit" placeholder="e.g. 6107022-CO" />
-        </div>
-        <div class="form-group">
-          <label for="f-jurisdiction">Jurisdiction</label>
-          <select id="f-jurisdiction">
-            <option value="seattle">Seattle DCI</option>
-            <option value="king">King County</option>
-            <option value="pierce">Pierce County (PALS+)</option>
-            <option value="snohomish">Snohomish County</option>
-            <option value="mybuildingpermit">MyBuildingPermit</option>
-          </select>
-        </div>
-        <div class="form-group" style="grid-column: 1 / -1">
-          <label for="f-notes">Notes</label>
-          <textarea id="f-notes" placeholder="Notes about this lead..."></textarea>
-        </div>
+    <div class="persistence-advisory" id="persistenceAdvisory">
+      <span class="pa-icon">⚠</span>
+      <div class="pa-text"><b>Heads up, Tim:</b> Your selections (Approve / Discard) are saved locally in this browser. Clearing browser history will erase them. For real cross-device persistence, Andres can connect Firebase/Supabase — let him know.</div>
+      <button class="pa-dismiss" onclick="document.getElementById('persistenceAdvisory').classList.add('hidden');localStorage.setItem('pa_dismissed','1')">OK, entendido</button>
+    </div>
+    <div class="status-bar">
+      <div class="status-state idle" id="statusState">
+        <span class="pulse-dot"></span>
+        <span id="statusStateText">Ready</span>
       </div>
-      <div class="form-actions">
-        <button class="btn-secondary" id="btn-cancel-form" style="display:none">Cancel</button>
-        <button class="btn-primary" id="btn-save-form">Add Lead</button>
+      <div class="status-msg" id="statusMsg">Select sources and click "Start Hunt" — pre-permit & application-stage opportunities only.</div>
+      <div class="status-stats">
+        <span>sea: <b id="ctSeattle">0</b></span>
+        <span>kc: <b id="ctKC">0</b></span>
+        <span>pc: <b id="ctPC">0</b></span>
+        <span>sno: <b id="ctSno">0</b></span>
       </div>
     </div>
 
-    <!-- Search + filter toolbar -->
-    <div class="toolbar">
-      <input type="text" id="search-input" placeholder="Search leads by name, company, permit#..." />
-      <select id="filter-status" style="padding:.55rem .75rem;background:var(--color-surface);border:1px solid var(--color-border);border-radius:6px;color:var(--color-text);font-size:.88rem;outline:none;cursor:pointer">
-        <option value="">All Statuses</option>
-        <option value="new">New</option>
+    <div class="kpis">
+      <div class="kpi"><div class="kpi-label">Total Opportunities</div><div class="kpi-value" id="kpiTotal">0</div><div class="kpi-sub">in database</div></div>
+      <div class="kpi prepermit"><div class="kpi-label">Pre-Permit / Review</div><div class="kpi-value" id="kpiPrePermit">0</div><div class="kpi-sub">earliest, best chance</div></div>
+      <div class="kpi qualified"><div class="kpi-label">No GC of Record</div><div class="kpi-value" id="kpiNoGC">0</div><div class="kpi-sub">slot still open</div></div>
+      <div class="kpi enrich"><div class="kpi-label">Owner Verified</div><div class="kpi-value" id="kpiEnriched">0</div><div class="kpi-sub">contact ready</div></div>
+      <div class="kpi handoff"><div class="kpi-label">Ready to Hand Off</div><div class="kpi-value" id="kpiHandoffReady">0</div><div class="kpi-sub">brief Tim &amp; Ashley</div></div>
+    </div>
+
+    <div class="view-toolbar">
+      <input type="text" class="toolbar-input" id="huntSearch" placeholder="Search opportunities (address, owner, type)...">
+      <select class="toolbar-select" id="huntCatFilter">
+        <option value="">All target categories</option>
+        <option value="multifamily">Multifamily (5–30 units)</option>
+        <option value="sfr">SFR new construction</option>
+        <option value="adu">ADU / DADU</option>
+        <option value="townhome">Townhomes</option>
+        <option value="commercial">Commercial TI / new build</option>
+        <option value="affordable">Affordable Housing</option>
+      </select>
+      <select class="toolbar-select" id="huntStatusFilter">
+        <option value="">Any permit status</option>
+        <option value="prepermit">Pre-Permit (best)</option>
+        <option value="review">Under Review</option>
+        <option value="issued_recent">Issued &lt;14 days (rare)</option>
+      </select>
+      <select class="toolbar-select" id="huntGCFilter">
+        <option value="">Any GC status</option>
+        <option value="none">No GC of Record</option>
+        <option value="has">Has GC (skip)</option>
+      </select>
+      <select class="toolbar-select" id="huntCountyFilter">
+        <option value="">All counties</option>
+        <option value="KING">King</option>
+        <option value="PIERCE">Pierce</option>
+        <option value="SNOHOMISH">Snohomish</option>
+        <option value="KITSAP">Kitsap</option>
+      </select>
+      <select class="toolbar-select" id="huntValueFilter">
+        <option value="">Any value</option>
+        <option value="100000">≥ $100K</option>
+        <option value="500000">≥ $500K</option>
+        <option value="1000000">≥ $1M</option>
+        <option value="5000000">≥ $5M</option>
+      </select>
+      <select class="toolbar-select" id="huntSortFilter">
+        <option value="score">Sort: Score</option>
+        <option value="value">Sort: Value</option>
+        <option value="recent">Sort: Most recent</option>
+        <option value="status">Sort: Permit stage</option>
+      </select>
+      <button class="toolbar-toggle" id="huntEnrichedToggle" title="Only owner-verified leads">✓ Verified only</button>
+    </div>
+
+    <div id="huntList" class="lead-list"></div>
+  </div>
+
+  <!-- ═══════════════════════════════════ PIPELINE VIEW ═══════════════════════════════════ -->
+  <div class="view" id="view-pipeline">
+    <div class="hunt-bar">
+      <div>
+        <div class="hunt-eyebrow">In-progress opportunities</div>
+        <div class="hunt-title">Working <em>pipeline</em> — contacted, qualified, in conversation.</div>
+      </div>
+      <div class="hunt-actions">
+        <button class="btn-ghost" onclick="exportPipelineCSV()">⬇ Export CSV</button>
+        <button class="btn-ghost" onclick="exportPipelineForAshley()">📧 Export Weekly Brief</button>
+      </div>
+    </div>
+    <div class="view-toolbar">
+      <input type="text" class="toolbar-input" id="pipeSearch" placeholder="Search pipeline...">
+      <select class="toolbar-select" id="pipeStateFilter">
+        <option value="">All states</option>
         <option value="contacted">Contacted</option>
         <option value="qualified">Qualified</option>
+        <option value="handoff">Handed off to Tim</option>
         <option value="won">Won</option>
         <option value="lost">Lost</option>
       </select>
-      <button class="btn-bulk-enrich" id="btn-bulk-enrich" title="Enrich all leads that have a permit number">⚡ Bulk Enrich</button>
-      <button class="btn-secondary" id="btn-export">Export CSV</button>
     </div>
+    <div id="pipelineList" class="lead-list"></div>
+  </div>
 
-    <!-- Leads table -->
-    <div class="leads-section">
-      <h2 id="leads-count-label">Leads</h2>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th data-sort="name">Name</th>
-              <th data-sort="company">Company</th>
-              <th data-sort="email">Email</th>
-              <th data-sort="phone">Phone</th>
-              <th data-sort="status">Status</th>
-              <th>Score</th>
-              <th data-sort="permit_number">Permit #</th>
-              <th data-sort="source">Source</th>
-              <th data-sort="updated_at">Updated</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="leads-tbody"></tbody>
-        </table>
-        <div class="empty-state" id="empty-state" style="display:none">
-          <div class="icon">&#128270;</div>
-          <div>No leads found</div>
-          <div style="font-size:.8rem;margin-top:.25rem">Add your first lead using the form above</div>
-        </div>
+  <!-- ═══════════════════════════════════ HANDOFFS VIEW ═══════════════════════════════════ -->
+  <div class="view" id="view-handoffs">
+    <div class="hunt-bar">
+      <div>
+        <div class="hunt-eyebrow">Decision-maker briefs</div>
+        <div class="hunt-title">Warm handoffs <em>ready</em> for Tim &amp; Ashley.</div>
+      </div>
+      <div class="hunt-actions">
+        <button class="btn-ghost" onclick="copyAllHandoffBriefs()">📋 Copy all briefs</button>
       </div>
     </div>
+    <div id="handoffList" class="lead-list"></div>
+  </div>
 
-  </div><!-- /main -->
-</div><!-- /app-screen -->
-
-<!-- Confirm dialog -->
-<div id="confirm-overlay">
-  <div class="confirm-dialog">
-    <h3 id="confirm-title">Confirm</h3>
-    <p id="confirm-message">Are you sure?</p>
-    <div class="actions">
-      <button class="btn-secondary" id="btn-confirm-cancel">Cancel</button>
-      <button class="btn-danger"    id="btn-confirm-ok">Delete</button>
+  <!-- ═══════════════════════════════════ REPORT VIEW ═══════════════════════════════════ -->
+  <div class="view" id="view-report">
+    <div class="hunt-bar">
+      <div>
+        <div class="hunt-eyebrow">Performance &amp; transparency</div>
+        <div class="hunt-title">Weekly report <em>for Envision Builders</em>.</div>
+      </div>
+      <div class="hunt-actions">
+        <button class="btn-ghost" onclick="copyReportText()">📋 Copy report (plain text)</button>
+        <button class="btn-ghost" onclick="downloadReportMarkdown()">⬇ Download .md</button>
+      </div>
     </div>
+    <div id="reportContent"></div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════ DRAWER ═══════════════════════════════════ -->
+<div class="drawer-overlay" id="drawer">
+  <div class="drawer">
+    <button class="drawer-close" onclick="closeDrawer()">✕</button>
+    <div class="drawer-content" id="drawerContent"></div>
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════════════════════════════════════
-     APPLICATION LOGIC
-     ════════════════════════════════════════════════════════════════════════ -->
 <script>
-(function () {
-  'use strict';
+// ═══════════════════════════════════════════════════════════════════════════
+// CONFIG — ALKAN LEAD HUNTER v9-EB  ·  ENVISION BUILDERS EDITION
+// ═══════════════════════════════════════════════════════════════════════════
+const CLIENT = {
+  name: 'Envision Builders LLC',
+  contact: 'Tim Kairez',
+  bd: 'Ashley Kairez',
+  location: 'Bonney Lake, WA',
+  email: 'tim@envision-builds.com',
+  phone: '425.757.4591',
+  ubi: '605 908 777',
+  license: 'ENVISBI752MC'
+};
 
-  // ── Config ───────────────────────────────────────────────────────────────
-  const CFG = window.ALKAN_CONFIG;
+const STORAGE_KEY = 'alkan_eb_v9_leads';
+const SEED_KEY = 'eb_seeded_v9';
 
-  // ── Supabase client ──────────────────────────────────────────────────────
-  const { createClient } = supabase;
-  const sb = createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
+// TARGET PROJECT CATEGORIES — what Tim actually wants
+// (replaces TRADE_KEYWORDS from v8 — trades are noise for Tim)
+const PROJECT_CATEGORIES = [
+  {
+    code: 'multifamily',
+    label: 'Multifamily',
+    keys: ['multifamily','multi-family','apartment','apt building','5-unit','6-unit','8-unit','10-unit','12-unit','15-unit','20-unit','25-unit','30-unit','units','duplex','triplex','fourplex','5+ units','dwelling units','dwelling unit'],
+    min_units: 5,
+    max_units: 30, // Tim: "under 30 units"
+    sweet_spot: [500000, 10000000],
+    priority: 'PRIMARY'
+  },
+  {
+    code: 'commercial',
+    label: 'Commercial TI / New',
+    keys: ['tenant improvement','tenant improvements','ti project','commercial','office building','retail','warehouse','industrial','mixed-use','mixed use','commercial new construction','commercial new build','restaurant build-out','medical office','dental office'],
+    sweet_spot: [150000, 5000000],
+    priority: 'PRIMARY'
+  },
+  {
+    code: 'sfr',
+    label: 'SFR new construction',
+    keys: ['single family','single-family','sfr','new construction','custom home','new sfr','new house','new dwelling','new residence','one-family dwelling','construct one-family','construct single'],
+    sweet_spot: [300000, 2500000],
+    priority: 'HIGH'
+  },
+  {
+    code: 'adu',
+    label: 'ADU / DADU',
+    keys: ['adu','dadu','accessory dwelling','accessory dwelling unit','detached accessory','attached accessory','garage conversion','backyard cottage','mother-in-law','laneway'],
+    sweet_spot: [100000, 350000],
+    priority: 'HIGH'
+  },
+  {
+    code: 'townhome',
+    label: 'Townhomes',
+    keys: ['townhome','townhouse','town home','town house','row house','rowhouse','attached townhomes','townhome development'],
+    sweet_spot: [300000, 1500000],
+    priority: 'HIGH'
+  },
+  {
+    code: 'affordable',
+    label: 'Affordable Housing',
+    keys: ['affordable housing','affordable',' lihtc','low-income housing','workforce housing','section 8','public housing','sha ','seattle housing authority','king county housing authority','housing authority','wshfc','tax credit'],
+    sweet_spot: [1000000, 50000000],
+    priority: 'STRATEGIC'
+  }
+];
 
-  // ── App state ────────────────────────────────────────────────────────────
-  let appState     = 'INIT';   // INIT | ONLINE | OFFLINE
-  let leads        = [];       // in-memory lead array (current client)
-  let activeClient = null;     // { label, email, password }
-  let sortKey      = 'updated_at';
-  let sortDir      = -1;       // -1 desc, 1 asc
-  let editingId    = null;
-  let confirmCb    = null;
-  let syncTimer    = null;
+// CATEGORIES TO EXCLUDE — explicit "NOT THIS" list for Tim
+const EXCLUSION_KEYWORDS = [
+  // Pure repairs / small remodels
+  'sign permit','sign installation','minor repair','minor alteration',
+  're-roof only','reroof only','siding only','window replacement only',
+  'fence permit only','deck repair','deck replacement only',
+  'plumbing permit only','mechanical permit only','electrical permit only',
+  'demolition only','demolition permit only',
+  // Public works (Tim said NO except affordable housing — handled separately)
+  'street improvement','sidewalk repair','road improvement','stormwater pipe',
+  'sewer main','water main',
+  // Single-trade jobs (not Tim's profile)
+  'water heater','furnace replacement','hvac replacement','panel upgrade',
+  // Owner-occupied small remodels
+  'kitchen remodel','bathroom remodel','master bath','master bedroom addition',
+  'interior remodel','interior alteration'
+];
 
-  // ── Enrichment state map ─────────────────────────────────────────────────
-  // Populated by alkan:enrichment-update events fired by actor-client.js
-  // key = permit_number, value = { status, data, error, enriched_at }
-  let enrichmentMap = {};
+// PERMIT STAGE INTELLIGENCE
+// Tim wants pre-permit / under-review opportunities (no GC yet),
+// NOT issued permits (those already have a GC locked in)
+const STAGE_SCORES = {
+  application: 25,        // Best — application just submitted
+  intake: 22,             // Just received, in queue
+  review: 18,             // In review
+  correction: 12,         // Corrections needed, still open
+  pre_issuance: 10,       // Approved, about to issue
+  issued_lt_14d: -2,      // Issued recently — GC likely just picked, slim chance
+  issued_lt_30d: -8,      // Issued in last month — GC selected
+  issued_old: -15         // Old issued — definitely has GC
+};
 
-  // ── LocalStorage keys (namespaced by client email) ───────────────────────
-  function lsKey(suffix) {
-    const id = activeClient ? activeClient.email : 'unknown';
-    return `alh_${id}_${suffix}`;
+const STAGE_LABELS = {
+  application: { label: 'APPLICATION', cls: 'tag-status-prepermit' },
+  intake: { label: 'INTAKE', cls: 'tag-status-prepermit' },
+  review: { label: 'IN REVIEW', cls: 'tag-status-review' },
+  correction: { label: 'CORRECTIONS', cls: 'tag-status-review' },
+  pre_issuance: { label: 'PRE-ISSUE', cls: 'tag-status-review' },
+  issued_lt_14d: { label: 'ISSUED <14d', cls: 'tag-status-issued' },
+  issued_lt_30d: { label: 'ISSUED <30d', cls: 'tag-status-issued' },
+  issued_old: { label: 'ISSUED', cls: 'tag-status-issued' }
+};
+
+const TARGET_COUNTIES = new Set(['KING','PIERCE','SNOHOMISH','KITSAP']);
+
+const LEAD_STATES = {
+  new: { label: 'New', cls: 'state-new' },
+  contacted: { label: 'Contacted', cls: 'state-contacted' },
+  qualified: { label: 'Qualified', cls: 'state-qualified' },
+  handoff: { label: 'Handed off', cls: 'state-handoff' },
+  won: { label: 'Won', cls: 'state-won' },
+  lost: { label: 'Lost', cls: 'state-lost' }
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════════════════
+let LEADS = [];
+let RUNNING = false;
+let STOPFLAG = false;
+let CURRENT_LEAD_ID = null;
+let CURRENT_VIEW = 'hunt';
+
+// ── SUPABASE PERSISTENCE (v11) ────────────────────────────────────────────
+async function save() {
+  try {
+    const rows = LEADS.map(l => ({
+      id: l.id,
+      client_id: 'envision_builders',
+      data: l,
+      updated_at: new Date().toISOString()
+    }));
+    const { error } = await _supabase.from('leads').upsert(rows, { onConflict: 'id' });
+    if (error) console.warn('Supabase save error:', error.message);
+    // Fallback offline
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ leads: LEADS, ts: Date.now() }));
+  } catch(e) { console.warn('save failed', e); }
+}
+
+async function load() {
+  try {
+    const { data, error } = await _supabase
+      .from('leads')
+      .select('data')
+      .eq('client_id', 'envision_builders')
+      .order('updated_at', { ascending: false });
+
+    if (error || !data?.length) {
+      // Fallback to localStorage if Supabase fails or is empty
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      const { leads } = JSON.parse(raw);
+      if (Array.isArray(leads)) { LEADS = leads; LEADS.forEach(l => scoreLead(l)); }
+      return;
+    }
+
+    LEADS = data.map(r => r.data);
+    LEADS.forEach(l => scoreLead(l));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ leads: LEADS, ts: Date.now() }));
+  } catch(e) {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) { try { const { leads } = JSON.parse(raw); if (Array.isArray(leads)) { LEADS = leads; LEADS.forEach(l => scoreLead(l)); } } catch(_) {} }
+    console.warn('load failed, using local cache', e);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// UTILITIES
+// ═══════════════════════════════════════════════════════════════════════════
+function escapeHtml(s) {
+  return String(s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+function uid() { return Math.random().toString(36).slice(2,11); }
+function now() { return Date.now(); }
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+function relTime(ts) {
+  const diff = Date.now() - ts;
+  const days = Math.floor(diff / 86400000);
+  if (days === 0) return 'today';
+  if (days === 1) return '1d ago';
+  if (days < 30) return `${days}d ago`;
+  if (days < 365) return `${Math.floor(days/30)}mo ago`;
+  return `${Math.floor(days/365)}y ago`;
+}
+function fmtMoney(n) {
+  if (!n || isNaN(n)) return '—';
+  if (n >= 1000000) return '$' + (n/1000000).toFixed(2).replace(/\.?0+$/,'') + 'M';
+  if (n >= 1000) return '$' + Math.round(n/1000) + 'K';
+  return '$' + n;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PROJECT CATEGORY MATCHING — replaces v8 matchTrades
+// ═══════════════════════════════════════════════════════════════════════════
+function matchCategory(text) {
+  const lc = String(text || '').toLowerCase();
+  for (const cat of PROJECT_CATEGORIES) {
+    for (const k of cat.keys) {
+      if (lc.includes(k)) return cat;
+    }
+  }
+  return null;
+}
+
+function isExcluded(text) {
+  const lc = String(text || '').toLowerCase();
+  for (const k of EXCLUSION_KEYWORDS) {
+    if (lc.includes(k)) return true;
+  }
+  return false;
+}
+
+function extractUnitCount(text) {
+  // Try to find "12 units", "10-unit", "8 dwelling units", etc.
+  const lc = String(text || '').toLowerCase();
+  const patterns = [
+    /(\d+)\s*[- ]?\s*units?/,
+    /(\d+)\s*[- ]?\s*dwelling/,
+    /(\d+)\s*[- ]?\s*unit\s*apartment/,
+    /(\d+)\s*[- ]?\s*unit\s*building/
+  ];
+  for (const p of patterns) {
+    const m = lc.match(p);
+    if (m) return parseInt(m[1], 10);
+  }
+  return null;
+}
+
+function classifyStage(permitStatus, issuedDate) {
+  if (!permitStatus && !issuedDate) return 'application';
+  const status = String(permitStatus || '').toLowerCase();
+  if (status.includes('application accepted') || status.includes('intake')) return 'intake';
+  if (status.includes('application')) return 'application';
+  if (status.includes('review') || status.includes('routing') || status.includes('plan check')) return 'review';
+  if (status.includes('correction') || status.includes('revisions')) return 'correction';
+  if (status.includes('approved') && !issuedDate) return 'pre_issuance';
+  if (status.includes('issued') || issuedDate) {
+    if (issuedDate) {
+      const days = (Date.now() - new Date(issuedDate).getTime()) / 86400000;
+      if (days < 14) return 'issued_lt_14d';
+      if (days < 30) return 'issued_lt_30d';
+      return 'issued_old';
+    }
+    return 'issued_old';
+  }
+  return 'application'; // default optimistic
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SCORING — INVERTED FOR ENVISION BUILDERS
+// Pre-permit & no-GC = BEST. Issued + GC of record = WORST.
+// ═══════════════════════════════════════════════════════════════════════════
+function scoreLead(lead) {
+  let score = 40; // base
+  const reasons = [];
+  const why = [];
+
+  const text = `${lead.title || ''} ${lead.description || ''} ${lead.permit_type || ''}`.toLowerCase();
+
+  // 0) HARD EXCLUSION — single-trade repairs, owner-remodels, sign permits, etc.
+  if (isExcluded(text)) {
+    lead.score = 0;
+    lead.score_reasons = ['EXCLUDED: matches Tim\'s "not interested" list'];
+    lead.why_relevant = [];
+    lead.intent_level = 'cold';
+    lead.is_excluded = true;
+    return lead;
   }
 
-  // ── Queue helpers ────────────────────────────────────────────────────────
-  function getQueue() {
-    try { return JSON.parse(localStorage.getItem(lsKey('queue')) || '[]'); }
-    catch { return []; }
+  // 1) CATEGORY MATCH — must match Tim's target project types
+  if (lead.category) {
+    score += 18;
+    reasons.push(`+18 ${lead.category.label} (target category)`);
+    why.push(`${lead.category.label} — target category`);
+  } else {
+    score -= 12;
+    reasons.push('-12 no target category');
   }
 
-  function setQueue(q) {
-    localStorage.setItem(lsKey('queue'), JSON.stringify(q));
-    renderQueueStat();
-  }
-
-  function queueWrite(lead) {
-    const q = getQueue();
-    const idx = q.findIndex(e => e.lead.id === lead.id);
-    const entry = { lead, queued_at: new Date().toISOString() };
-    if (idx >= 0) q[idx] = entry; else q.push(entry);
-    setQueue(q);
-  }
-
-  function clearQueue() {
-    localStorage.removeItem(lsKey('queue'));
-    renderQueueStat();
-  }
-
-  function updateCache(updatedLead) {
-    const cached = getCachedLeads();
-    const idx = cached.findIndex(r => r.id === updatedLead.id);
-    if (idx >= 0) cached[idx] = updatedLead; else cached.push(updatedLead);
-    localStorage.setItem(lsKey('cache'), JSON.stringify(cached));
-  }
-
-  function removeCached(id) {
-    const cached = getCachedLeads().filter(r => r.id !== id);
-    localStorage.setItem(lsKey('cache'), JSON.stringify(cached));
-  }
-
-  function getCachedLeads() {
-    try { return JSON.parse(localStorage.getItem(lsKey('cache')) || '[]'); }
-    catch { return []; }
-  }
-
-  // ── Status banner ────────────────────────────────────────────────────────
-  let bannerTimer = null;
-
-  function showBanner(msg, type = 'info', autoDismissMs = 0) {
-    const el = document.getElementById('status-banner');
-    el.textContent = msg;
-    el.className = type;
-    el.style.display = 'flex';
-    clearTimeout(bannerTimer);
-    if (autoDismissMs > 0) {
-      bannerTimer = setTimeout(() => { el.style.display = 'none'; }, autoDismissMs);
+  // 2) UNIT COUNT for multifamily — Tim wants <30
+  if (lead.category && lead.category.code === 'multifamily' && lead.unit_count) {
+    if (lead.unit_count > 30) {
+      score -= 25;
+      reasons.push('-25 multifamily >30 units (out of Tim\'s scope)');
+    } else if (lead.unit_count >= 5 && lead.unit_count <= 30) {
+      score += 10;
+      reasons.push(`+10 multifamily ${lead.unit_count} units (sweet spot)`);
+      why.push(`${lead.unit_count}-unit multifamily — fits Tim's profile exactly`);
     }
   }
 
-  function hideBanner() {
-    clearTimeout(bannerTimer);
-    document.getElementById('status-banner').style.display = 'none';
-  }
-
-  // ── State transitions ────────────────────────────────────────────────────
-  function setState(s) {
-    appState = s;
-    const saveBtn = document.getElementById('btn-save-form');
-    if (s === 'OFFLINE') {
-      showBanner('Offline — changes are queued and will sync on reconnect.', 'offline');
-      if (saveBtn) saveBtn.textContent = editingId ? 'Update Lead (queued)' : 'Add Lead (queued)';
-    } else if (s === 'ONLINE') {
-      hideBanner();
-      if (saveBtn) saveBtn.textContent = editingId ? 'Update Lead' : 'Add Lead';
-    } else if (s === 'SYNCING') {
-      showBanner('Syncing queued changes...', 'syncing');
-    }
-  }
-
-  // ── Get current client_id from Supabase JWT ──────────────────────────────
-  async function getClientId() {
-    const { data: { session } } = await sb.auth.getSession();
-    if (!session) return null;
-    try {
-      const payload = JSON.parse(atob(session.access_token.split('.')[1]));
-      return (payload.app_metadata && payload.app_metadata.client_id) || null;
-    } catch {
-      return null;
-    }
-  }
-
-  // ── HARDENED load() ──────────────────────────────────────────────────────
-  async function load() {
-    let serverResult = null;
-    let serverError  = null;
-
-    try {
-      const { data, error, status } = await sb
-        .from('leads')
-        .select('*')
-        .order('updated_at', { ascending: false });
-
-      if (error) {
-        serverError = { type: 'supabase_error', status, message: error.message };
-      } else {
-        serverResult = data;
+  // 3) PERMIT STAGE — THE KEY INVERSION vs v8
+  if (lead.stage) {
+    const stageScore = STAGE_SCORES[lead.stage] || 0;
+    score += stageScore;
+    if (stageScore > 0) {
+      reasons.push(`+${stageScore} permit stage: ${lead.stage}`);
+      if (lead.stage === 'application' || lead.stage === 'intake') {
+        why.push('pre-permit / application stage — no GC selected yet');
+      } else if (lead.stage === 'review') {
+        why.push('under review — owner still evaluating GCs');
       }
-    } catch (netErr) {
-      serverError = { type: 'network_error', message: netErr.message };
-    }
-
-    if (serverError) {
-      setState('OFFLINE');
-      showBanner(
-        `Could not reach server (${serverError.message}). Showing cached data. Saves will be queued.`,
-        'offline'
-      );
-      leads = getCachedLeads();
-      render();
-      return;
-    }
-
-    setState('ONLINE');
-    localStorage.setItem(lsKey('cache'), JSON.stringify(serverResult));
-    leads = serverResult;
-    render();
-  }
-
-  // ── HARDENED save() ─────────────────────────────────────────────────────
-  async function saveLead(lead) {
-    lead.updated_at = new Date().toISOString();
-
-    if (!lead.client_id) {
-      lead.client_id = await getClientId();
-    }
-
-    if (appState === 'OFFLINE') {
-      queueWrite(lead);
-      updateCache(lead);
-      const idx = leads.findIndex(r => r.id === lead.id);
-      if (idx >= 0) leads[idx] = lead; else leads.unshift(lead);
-      render();
-      showBanner('Offline — change queued, will sync on reconnect.', 'offline');
-      return { queued: true };
-    }
-
-    try {
-      const { data, error } = await sb
-        .from('leads')
-        .upsert(lead, { onConflict: 'id' })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      updateCache(data);
-      const idx = leads.findIndex(r => r.id === data.id);
-      if (idx >= 0) leads[idx] = data; else leads.unshift(data);
-      render();
-      return { saved: true, data };
-
-    } catch (err) {
-      setState('OFFLINE');
-      queueWrite(lead);
-      updateCache(lead);
-      const idx = leads.findIndex(r => r.id === lead.id);
-      if (idx >= 0) leads[idx] = lead; else leads.unshift(lead);
-      render();
-      showBanner(`Save failed (${err.message}). Change queued for retry.`, 'offline');
-      return { queued: true };
+    } else {
+      reasons.push(`${stageScore} permit stage: ${lead.stage}`);
     }
   }
 
-  // ── deleteLead() ─────────────────────────────────────────────────────────
-  async function deleteLead(id) {
-    leads = leads.filter(r => r.id !== id);
-    removeCached(id);
-    render();
-
-    if (appState === 'OFFLINE') {
-      queueWrite({ id, _delete: true, updated_at: new Date().toISOString() });
-      showBanner('Offline — delete queued for sync.', 'offline');
-      return;
-    }
-
-    try {
-      const { error } = await sb.from('leads').delete().eq('id', id);
-      if (error) throw error;
-    } catch (err) {
-      setState('OFFLINE');
-      queueWrite({ id, _delete: true, updated_at: new Date().toISOString() });
-      showBanner(`Delete failed (${err.message}). Queued for retry.`, 'offline');
+  // 4) GC OF RECORD — Tim's #1 question: "do they already have a contractor?"
+  if (!lead.contractor_name || lead.contractor_name === '' || lead.contractor_name === '— No GC of Record') {
+    score += 22;
+    reasons.push('+22 no GC of record');
+    why.push('no general contractor of record yet');
+    lead.no_gc = true;
+  } else {
+    // If issued with GC, this is dead for Tim
+    if (lead.stage && lead.stage.startsWith('issued')) {
+      score -= 25;
+      reasons.push('-25 issued + GC already assigned');
+    } else {
+      score -= 8;
+      reasons.push('-8 contractor named (may be preconstruction only)');
     }
   }
 
-  // ── sync() — flush offline queue on reconnect ────────────────────────────
-  async function sync() {
-    const queue = getQueue();
-    if (queue.length === 0) {
-      if (appState !== 'ONLINE') setState('ONLINE');
-      return;
-    }
+  // 5) OWNER ENRICHMENT — Tim wants OWNER, ARCHITECT, OWNER'S REP info
+  let enrichScore = 0;
+  if (lead.owner_name) { enrichScore += 4; reasons.push('+4 owner name'); }
+  if (lead.owner_phone || lead.owner_email) { enrichScore += 8; reasons.push('+8 owner contact'); }
+  if (lead.architect_name) { enrichScore += 4; reasons.push('+4 architect named'); }
+  if (lead.owners_rep) { enrichScore += 3; reasons.push('+3 owner\'s rep'); }
+  score += enrichScore;
+  if (enrichScore >= 12) {
+    why.push('owner / architect contact verified — ready to reach out');
+    lead.fully_enriched = true;
+  } else if (enrichScore >= 4) {
+    why.push('partial enrichment — needs follow-up');
+  }
 
-    setState('SYNCING');
-
-    try {
-      await sb.from('leads').select('id').limit(1);
-    } catch {
-      setState('OFFLINE');
-      return;
-    }
-
-    const ids = queue.map(e => e.lead.id).filter(Boolean);
-    let serverMap = {};
-
-    if (ids.length > 0) {
-      const { data: serverRows } = await sb
-        .from('leads')
-        .select('id, updated_at')
-        .in('id', ids);
-
-      if (serverRows) {
-        serverMap = Object.fromEntries(serverRows.map(r => [r.id, r.updated_at]));
+  // 6) PROJECT VALUE — Tim sweet spots
+  if (lead.value) {
+    if (lead.category && lead.category.sweet_spot) {
+      const [min, max] = lead.category.sweet_spot;
+      if (lead.value >= min && lead.value <= max) {
+        score += 10;
+        reasons.push('+10 value in sweet spot');
+        why.push(`${fmtMoney(lead.value)} — Tim's sweet spot`);
+      } else if (lead.value < min * 0.5) {
+        score -= 8;
+        reasons.push('-8 value below threshold');
+      } else if (lead.value > max * 2) {
+        score -= 5;
+        reasons.push('-5 value above Tim\'s typical scope');
       }
+    } else if (lead.value > 500000) {
+      score += 6;
     }
+  }
 
-    const toUpsert = [];
-    const toDelete = [];
+  // 7) COUNTY — target Puget Sound only
+  if (lead.county && TARGET_COUNTIES.has(String(lead.county).toUpperCase())) {
+    score += 6;
+    reasons.push(`+6 ${lead.county} County (target)`);
+  } else if (lead.county) {
+    score -= 12;
+    reasons.push(`-12 outside Puget Sound (${lead.county})`);
+  }
 
-    for (const { lead } of queue) {
-      if (lead._delete) {
-        toDelete.push(lead.id);
+  // 8) Recency — fresher = better
+  if (lead.posted_ts) {
+    const days = (Date.now() - lead.posted_ts) / 86400000;
+    if (days < 7) { score += 6; reasons.push('+6 posted <7d'); }
+    else if (days < 30) { score += 2; reasons.push('+2 posted <30d'); }
+    else if (days > 90) { score -= 10; reasons.push('-10 posted >90d (stale)'); }
+  }
+
+  // Clamp + level
+  lead.score = Math.max(0, Math.min(100, Math.round(score)));
+  lead.score_reasons = reasons;
+  lead.why_relevant = why.slice(0, 4);
+  lead.intent_level = lead.score >= 65 ? 'hot' : lead.score >= 45 ? 'warm' : 'cold';
+  lead.ready_for_handoff = lead.score >= 60 && lead.fully_enriched && lead.no_gc;
+
+  return lead;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SCRAPERS — Live data fetching
+// Note: Live scraping is best-effort; falls back to demo data on failure.
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Robust fetch with multi-proxy failover.
+// Socrata APIs (Seattle DCI, King County, etc.) expose CORS headers natively,
+// so direct fetches USUALLY work. Proxies are fallback for network restrictions.
+// NOTE: free CORS proxies are unreliable — they get rate-limited or go dark.
+// The set below was verified live; if all fail, the issue is likely the query
+// itself (wrong field name → 400 Bad Request), not CORS.
+const CORS_PROXIES = [
+  url => url, // direct — should always work for Socrata
+  url => 'https://corsproxy.io/?' + encodeURIComponent(url),
+  url => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(url),
+  url => 'https://api.allorigins.win/get?url=' + encodeURIComponent(url) + '&callback=' // wrapped response
+];
+
+async function fetchWithTimeout(url, opts = {}, ms = 25000) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(`timeout after ${ms}ms`), ms);
+  try {
+    const r = await fetch(url, { ...opts, signal: ctrl.signal });
+    return r;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function fetchDirect(url, opts = {}) {
+  let lastError;
+  for (let i = 0; i < CORS_PROXIES.length; i++) {
+    const target = CORS_PROXIES[i](url);
+    const isDirect = i === 0;
+    const label = isDirect ? 'direct' : `proxy ${i}`;
+    try {
+      console.log(`[fetchDirect] Trying ${label}...`);
+      const r = await fetchWithTimeout(target, opts, 25000);
+      if (!r.ok) {
+        lastError = new Error(`HTTP ${r.status} via ${label}`);
+        console.warn(`[fetchDirect] ${label} returned HTTP ${r.status}`);
         continue;
       }
-      const serverTs = serverMap[lead.id];
-      if (!serverTs) {
-        toUpsert.push(lead);
-      } else if (new Date(lead.updated_at) > new Date(serverTs)) {
-        toUpsert.push(lead);
-      } else {
-        console.warn('[AlkanLeadHunter] Discarded stale local change for lead', lead.id);
+      const text = await r.text();
+      // Handle allorigins.win/get wrapping (returns { contents: "..." })
+      let body = text;
+      if (target.includes('allorigins.win/get')) {
+        try { body = JSON.parse(text).contents || text; } catch {}
       }
-    }
-
-    let syncError = null;
-
-    if (toUpsert.length > 0) {
-      const { error } = await sb
-        .from('leads')
-        .upsert(toUpsert, { onConflict: 'id' });
-      if (error) syncError = error;
-    }
-
-    for (const id of toDelete) {
-      const { error } = await sb.from('leads').delete().eq('id', id);
-      if (error) syncError = error;
-    }
-
-    if (syncError) {
-      setState('OFFLINE');
-      showBanner(`Sync partially failed: ${syncError.message}. Will retry.`, 'offline');
-      return;
-    }
-
-    clearQueue();
-    setState('ONLINE');
-    showBanner('Synced successfully.', 'info', 3000);
-    await load();
-  }
-
-  // ── UUID generator ────────────────────────────────────────────────────────
-  function uuid() {
-    return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
-      (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
-    );
-  }
-
-  // ── Enrichment helpers ────────────────────────────────────────────────────
-
-  function getEnr(permitNumber) {
-    if (!permitNumber) return null;
-    return enrichmentMap[permitNumber] || null;
-  }
-
-  function scoreBadgeClass(score) {
-    if (score >= 70) return 'score-high';
-    if (score >= 40) return 'score-mid';
-    return 'score-low';
-  }
-
-  function renderScore(lead) {
-    const enr = getEnr(lead.permit_number);
-    if (!lead.permit_number) return '<span class="text-muted" style="font-size:.72rem">—</span>';
-    if (!enr) return '<span class="enr-idle">—</span>';
-    if (enr.status === 'pending') return '<span class="enr-pending">⏳ enriching…</span>';
-    if (enr.status === 'failed')  return `<span class="enr-failed" title="${escHtml(enr.error || 'unknown')}" onclick="App.enrichLead('${lead.id}')">❌ retry</span>`;
-    if (enr.status === 'success' && enr.data) {
-      const sc     = enr.data.scoring || {};
-      const score  = sc.score != null ? sc.score : '?';
-      const golden = sc.golden_lead;
-      const cls    = scoreBadgeClass(score);
-      return `${golden ? '🏆 ' : ''}<span class="score-badge ${cls}">${score}</span>`;
-    }
-    return '<span class="text-muted" style="font-size:.72rem">—</span>';
-  }
-
-  function isGolden(lead) {
-    const enr = getEnr(lead.permit_number);
-    if (!enr || !enr.data || !enr.data.scoring) return false;
-    return !!enr.data.scoring.golden_lead;
-  }
-
-  // ── Company / LLC detection ───────────────────────────────────────────────
-  function isLikelyCompany(name) {
-    if (!name) return false;
-    return /\b(llc|l\.l\.c|lp|inc\.?|corp\.?|ltd\.?|pllc|plc|co\.|holdings?|group|properties|realty|investments?|enterprises?|solutions?|services?|partners?|management|trust|association|assoc\.?)\b/i.test(name);
-  }
-
-  // Returns enriched contact data if enrichment succeeded
-  function getEnrData(lead) {
-    const enr = getEnr(lead.permit_number);
-    if (!enr || enr.status !== 'success' || !enr.data) return null;
-    return enr.data.data || enr.data || null;
-  }
-
-  // Render enriched contact details (owner name, phone, GC signal) inside a cell
-  function renderEnrichedContact(lead) {
-    const d = getEnrData(lead);
-    if (!d) return '';
-    const parts = [];
-
-    // Real owner name from enrichment (different from what was manually entered)
-    if (d.owner_name && d.owner_name !== lead.name) {
-      const companyWarn = isLikelyCompany(d.owner_name)
-        ? `<span class="badge-company">🏢 EMPRESA</span>`
-        : '';
-      parts.push(`<div class="enr-owner-name">👤 ${escHtml(d.owner_name)}${companyWarn}</div>`);
-    }
-    // Enriched phone
-    if (d.owner_phone && d.owner_phone !== lead.phone) {
-      parts.push(`<div class="enr-phone">📞 ${escHtml(d.owner_phone)}</div>`);
-    }
-    // GC signal
-    if (d.pre_gc_signal === true || d.pre_gc_signal === false) {
-      parts.push(d.pre_gc_signal === false
-        ? `<div class="enr-no-gc">✅ Sin GC — contacto directo</div>`
-        : `<div class="enr-has-gc">⚠️ Ya tiene GC</div>`
-      );
-    }
-    return parts.join('');
-  }
-
-  // ── Actor health check ────────────────────────────────────────────────────
-  async function checkActorHealth() {
-    const el = document.getElementById('actor-status');
-    if (!el) return;
-    if (!window.actorHealth) {
-      el.textContent = '⚡ Actor: not loaded';
-      el.className = 'actor-chk';
-      return;
-    }
-    el.textContent = '⚡ Actor: checking…';
-    el.className = 'actor-chk';
-    try {
-      const ok = await window.actorHealth();
-      el.textContent = ok ? '⚡ Actor: online' : '⚡ Actor: offline';
-      el.className = ok ? 'actor-ok' : 'actor-down';
-    } catch {
-      el.textContent = '⚡ Actor: offline';
-      el.className = 'actor-down';
+      // Verify we got JSON
+      try {
+        JSON.parse(body);
+      } catch {
+        lastError = new Error(`Non-JSON response via ${label}`);
+        console.warn(`[fetchDirect] ${label} returned non-JSON`);
+        continue;
+      }
+      console.log(`[fetchDirect] ✓ ${label} succeeded (${body.length} bytes)`);
+      return {
+        ok: true,
+        json: async () => JSON.parse(body),
+        text: async () => body,
+        _proxy: label
+      };
+    } catch (e) {
+      lastError = e;
+      console.warn(`[fetchDirect] ${label} failed: ${e.message || e.name}`);
     }
   }
+  throw lastError || new Error('All proxies failed');
+}
 
-  // ── Listen to enrichment updates from actor-client.js ────────────────────
-  window.addEventListener('alkan:enrichment-update', (e) => {
-    const { permitNumber, state } = e.detail || {};
-    if (permitNumber) {
-      enrichmentMap[permitNumber] = state;
-      render();
+function bumpCounter(label, n) {
+  const ids = { Seattle: 'ctSeattle', KC: 'ctKC', PC: 'ctPC', Sno: 'ctSno' };
+  const id = ids[label];
+  if (id) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = (parseInt(el.textContent, 10) || 0) + n;
+  }
+}
+
+function logStatus(msg, state) {
+  document.getElementById('statusMsg').textContent = msg;
+  const stateEl = document.getElementById('statusState');
+  const stateText = document.getElementById('statusStateText');
+  if (state) {
+    stateEl.className = 'status-state ' + state;
+    stateText.textContent = state === 'running' ? 'Running' : state === 'error' ? 'Error' : 'Ready';
+  }
+}
+
+// Seattle DCI — focusing on APPLICATIONS and IN-REVIEW, not just issued
+// Dataset: data.seattle.gov/resource/76t5-zqzr.json (Building Permits, active 2026)
+// IMPORTANT: this dataset uses SMASHED LOWERCASE field names (no underscores).
+// Verified live field names:
+//   permitnum, permitclass, permitclassmapped, permittypemapped, permittypedesc,
+//   description, housingunits, housingunitsadded, estprojectcost,
+//   applieddate, issueddate, statuscurrent, originaladdress1, originalcity,
+//   originalzip, contractorcompanyname, link ({url: '...'})
+async function scrapeSeattleDCI() {
+  const out = [];
+  let rawCount = 0;
+  let proxyUsed = '';
+  let categoryMatches = 0;
+  let exclusionDrops = 0;
+  try {
+    logStatus('Seattle DCI · connecting to data.seattle.gov...', 'running');
+    const cutoff = new Date(Date.now() - 180*86400000).toISOString().slice(0,10);
+    // Use the CORRECT field name: applieddate (smashed lowercase, no underscore)
+    const url = `https://data.seattle.gov/resource/76t5-zqzr.json?$where=applieddate>'${cutoff}T00:00:00'&$limit=500`;
+    const r = await fetchDirect(url, { headers: { 'Accept': 'application/json' } });
+    proxyUsed = r._proxy || 'direct';
+    const rows = await r.json();
+    // Defensive: ensure rows is an array (some proxies wrap errors as objects)
+    if (!Array.isArray(rows)) {
+      const errMsg = rows && rows.message ? rows.message : 'API returned non-array (possible error response)';
+      throw new Error(errMsg);
     }
+    rawCount = rows.length;
+    logStatus(`Seattle DCI · ${rawCount} permits fetched via ${proxyUsed}, filtering...`, 'running');
+    for (const p of rows) {
+      if (STOPFLAG) break;
+      // Use SMASHED LOWERCASE field names — verified against live API
+      const desc = p.description || '';
+      const permitTypeDesc = p.permittypedesc || '';
+      const permitTypeMapped = p.permittypemapped || '';
+      const permitClass = p.permitclass || '';
+      const permitClassMapped = p.permitclassmapped || '';
+      const fullText = [desc, permitTypeDesc, permitTypeMapped, permitClass, permitClassMapped].join(' ');
+
+      const category = matchCategory(fullText);
+      if (!category) continue;
+      categoryMatches++;
+      if (isExcluded(fullText)) { exclusionDrops++; continue; }
+
+      const unitCount = (p.housingunitsadded ? parseInt(p.housingunitsadded, 10) : null) ||
+                        (p.housingunits ? parseInt(p.housingunits, 10) : null) ||
+                        extractUnitCount(fullText);
+
+      const stage = classifyStage(p.statuscurrent, p.issueddate);
+      // Link is an object {url: '...'} in this dataset, not a string
+      const permitUrl = (p.link && p.link.url) ? p.link.url :
+                       `https://cosaccela.seattle.gov/Portal/Cap/CapDetail.aspx?Module=DPD&capID1=${p.permitnum || ''}`;
+
+      const lead = {
+        id: 'sea_' + (p.permitnum || uid()),
+        source: 'seattle_dci',
+        source_label: 'Seattle DCI',
+        title: `${category.label} — ${(p.originaladdress1 || '').slice(0,60)}`,
+        description: desc.slice(0, 800),
+        permit_type: permitTypeDesc || permitTypeMapped,
+        permit_number: p.permitnum,
+        permit_status_raw: p.statuscurrent || '',
+        stage,
+        category,
+        unit_count: unitCount,
+        address: p.originaladdress1 || '',
+        city: p.originalcity || 'Seattle',
+        zip: p.originalzip || '',
+        county: 'KING',
+        value: parseFloat(p.estprojectcost || 0) || null,
+        posted_ts: p.applieddate ? new Date(p.applieddate).getTime() :
+                   (p.issueddate ? new Date(p.issueddate).getTime() : Date.now()),
+        issued_date: p.issueddate,
+        application_date: p.applieddate,
+        url: permitUrl,
+        contractor_name: p.contractorcompanyname || '',
+        owner_name: '',  // Seattle dataset does NOT expose owner — needs Parcel lookup
+        owner_phone: '',
+        owner_email: '',
+        architect_name: '',
+        owners_rep: '',
+        state: 'new',
+        timeline: [],
+        captured_ts: now(),
+        notes: ''
+      };
+      scoreLead(lead);
+      out.push(lead);
+    }
+  } catch(e) {
+    console.error('Seattle DCI failed:', e);
+    const errMsg = e.message || e.name || 'unknown error';
+    const isTimeout = errMsg.toLowerCase().includes('abort') || errMsg.toLowerCase().includes('timeout');
+    return {
+      leads: [],
+      summary: `Seattle DCI: ❌ ${isTimeout ? 'timeout (API slow)' : errMsg}`
+    };
+  }
+  bumpCounter('Seattle', out.length);
+  return {
+    leads: out,
+    summary: `Seattle DCI: ${rawCount} fetched (${proxyUsed}) → ${categoryMatches} matched category → ${out.length} kept (${exclusionDrops} excluded)`
+  };
+}
+
+// King County — unincorporated. The dataset `ymsa-z8nm` doesn't exist in 2026.
+// King County publishes permits through the Accela ACA portal, not Socrata.
+// Production version: integrate the Accela ACA scraper or use the
+// permits.kingcounty.gov backend. For now, returns empty with honest summary.
+async function scrapeKingCounty() {
+  await sleep(200);
+  return {
+    leads: [],
+    summary: 'King County: ⏸ pending (Accela ACA integration needed — not on Socrata)'
+  };
+}
+
+// Pierce County — Tim's home county. Uses Accela ACA, no public JSON API.
+async function scrapePierceCounty() {
+  await sleep(200);
+  return {
+    leads: [],
+    summary: 'Pierce County: ⏸ pending (Accela ACA integration needed)'
+  };
+}
+
+// Snohomish County — pulls from Supabase leads table (CSV imports + actor enrichment)
+async function scrapeSnohomish() {
+  const out = [];
+  try {
+    logStatus('Snohomish · loading leads from database...', 'running');
+    const { data, error } = await _supabase
+      .from('leads')
+      .select('*')
+      .eq('client_id', 'alkan')
+      .or('jurisdiction.ilike.%snohomish%,county.ilike.%snohomish%,notes.ilike.%snohomish%')
+      .limit(300);
+
+    if (error) throw new Error(error.message);
+    if (!data || !data.length) {
+      return { leads: [], summary: 'Snohomish: 0 leads in database (import CSV to populate)' };
+    }
+
+    for (const row of data) {
+      const desc = row.notes || row.description || '';
+      const fullText = [desc, row.permit_type || '', row.trade || ''].join(' ');
+      const category = matchCategory(fullText) || PROJECT_CATEGORIES.find(c => c.code === 'sfr');
+
+      const lead = {
+        id: 'sno_' + (row.id || uid()),
+        source: 'snohomish_csv',
+        source_label: 'Snohomish County',
+        title: `${category ? category.label : 'Permit'} — ${(row.address || row.full_address || '').slice(0,60)}`,
+        description: desc.slice(0, 800),
+        permit_type: row.permit_type || 'Building',
+        permit_number: row.permit_number || null,
+        permit_status_raw: row.status || 'Issued',
+        stage: 'issued_lt_30d',
+        category,
+        unit_count: null,
+        address: row.address || row.full_address || '',
+        city: row.city || '',
+        zip: row.zip || '',
+        county: 'SNOHOMISH',
+        value: parseFloat(row.valuation || row.project_value || 0) || null,
+        posted_ts: row.issue_date ? new Date(row.issue_date).getTime() : Date.now(),
+        issued_date: row.issue_date || null,
+        application_date: null,
+        url: row.source_url || '',
+        contractor_name: row.contractor || '',
+        owner_name: row.owner_name || row.name || '',
+        owner_phone: row.phone || '',
+        owner_email: row.email || '',
+        architect_name: '',
+        owners_rep: '',
+        no_gc: !row.contractor,
+        fully_enriched: !!(row.phone || row.email),
+        state: 'new',
+        timeline: [],
+        captured_ts: now(),
+        notes: ''
+      };
+      scoreLead(lead);
+      if (!lead.is_excluded) out.push(lead);
+    }
+  } catch(e) {
+    console.error('Snohomish failed:', e);
+    return { leads: [], summary: `Snohomish: ❌ ${e.message}` };
+  }
+  return {
+    leads: out,
+    summary: `Snohomish County: ${out.length} leads from database`
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// HUNT ORCHESTRATION
+// ═══════════════════════════════════════════════════════════════════════════
+async function startHunt() {
+  if (RUNNING) {
+    STOPFLAG = true;
+    return;
+  }
+  RUNNING = true;
+  STOPFLAG = false;
+  const btn = document.getElementById('btnHunt');
+  btn.textContent = '⏹ Stop';
+  btn.classList.add('stop');
+
+  const sources = [...document.querySelectorAll('#sourceChips .chip.active')].map(c => c.dataset.source);
+  if (!sources.length) {
+    alert('Select at least one source.');
+    RUNNING = false;
+    btn.textContent = '▶ Start Hunt';
+    btn.classList.remove('stop');
+    return;
+  }
+
+  // Reset counters
+  ['ctSeattle','ctKC','ctPC','ctSno'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = '0';
   });
 
-  // ── Render ────────────────────────────────────────────────────────────────
-  function getFilteredLeads() {
-    const q      = (document.getElementById('search-input').value || '').toLowerCase();
-    const status = document.getElementById('filter-status').value;
+  let totalAdded = 0;
+  const sourceSummaries = [];
 
-    return leads
-      .filter(l => {
-        if (status && l.status !== status) return false;
-        if (!q) return true;
-        return [l.name, l.company, l.email, l.phone, l.source, l.notes, l.permit_number]
-          .some(v => v && v.toLowerCase().includes(q));
-      })
-      .sort((a, b) => {
-        const av = (a[sortKey] || '').toLowerCase();
-        const bv = (b[sortKey] || '').toLowerCase();
-        if (av < bv) return sortDir;
-        if (av > bv) return -sortDir;
-        return 0;
-      });
-  }
-
-  function badgeClass(status) {
-    return {
-      new:       'badge-new',
-      contacted: 'badge-contacted',
-      qualified: 'badge-qualified',
-      won:       'badge-won',
-      lost:      'badge-lost'
-    }[status] || 'badge-new';
-  }
-
-  function fmtDate(iso) {
-    if (!iso) return '';
-    const d = new Date(iso);
-    return d.toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' });
-  }
-
-  function jurisdictionLabel(j) {
-    const map = {
-      seattle:          'Seattle DCI',
-      king:             'King County',
-      pierce:           'Pierce (PALS+)',
-      snohomish:        'Snohomish',
-      mybuildingpermit: 'MyBldgPermit',
-    };
-    return map[j] || j || '';
-  }
-
-  function renderQueueStat() {
-    const q   = getQueue();
-    const len = q.length;
-    const card = document.getElementById('stat-queued-card');
-    document.getElementById('stat-queued').textContent = len;
-    if (card) card.style.display = len > 0 ? '' : 'none';
-  }
-
-  function render() {
-    const filtered = getFilteredLeads();
-    const tbody    = document.getElementById('leads-tbody');
-    const empty    = document.getElementById('empty-state');
-
-    // Stats
-    document.getElementById('stat-total').textContent     = leads.length;
-    document.getElementById('stat-new').textContent       = leads.filter(l => l.status === 'new').length;
-    document.getElementById('stat-qualified').textContent = leads.filter(l => l.status === 'qualified').length;
-    document.getElementById('stat-won').textContent       = leads.filter(l => l.status === 'won').length;
-    document.getElementById('stat-golden').textContent    = leads.filter(l => isGolden(l)).length;
-
-    document.getElementById('leads-count-label').textContent =
-      `Leads (${filtered.length}${filtered.length !== leads.length ? ' of ' + leads.length : ''})`;
-
-    renderQueueStat();
-
-    if (filtered.length === 0) {
-      tbody.innerHTML = '';
-      empty.style.display = '';
-      return;
-    }
-
-    empty.style.display = 'none';
-
-    const queue      = getQueue();
-    const pendingIds = new Set(queue.map(e => e.lead.id));
-    const enrAvail   = !!window.actorEnrich;
-
-    tbody.innerHTML = filtered.map(l => {
-      const isPending   = pendingIds.has(l.id);
-      const golden      = isGolden(l);
-      const enr         = getEnr(l.permit_number);
-      const isEnriching = enr && enr.status === 'pending';
-      const enrichBtn   = (l.permit_number && enrAvail)
-        ? `<button class="btn-enrich" onclick="App.enrichLead('${l.id}')" ${isEnriching ? 'disabled' : ''}>${isEnriching ? '⏳' : '⚡ Enrich'}</button>`
-        : '';
-
-      // Company detection on manually-entered name/company field
-      const nameIsCompany    = isLikelyCompany(l.name);
-      const companyBadge     = nameIsCompany
-        ? `<span class="badge-company">🏢 EMPRESA</span>` : '';
-      const enrichedContact  = renderEnrichedContact(l);
-
-      return `<tr class="${golden ? 'golden-lead' : ''}">
-        <td class="${isPending ? 'pending-dot' : ''}">
-          <strong>${escHtml(l.name || '')}</strong>${companyBadge}
-          ${enrichedContact}
-        </td>
-        <td class="truncate">${escHtml(l.company || '')}</td>
-        <td class="truncate text-muted">${escHtml(l.email || '')}</td>
-        <td class="text-muted">${escHtml(l.phone || '')}</td>
-        <td><span class="badge ${badgeClass(l.status)}">${l.status || 'new'}</span></td>
-        <td style="min-width:80px">${renderScore(l)}</td>
-        <td>
-          ${l.permit_number
-            ? `<span class="permit-tag">${escHtml(l.permit_number)}</span>
-               <span class="text-muted" style="font-size:.68rem;display:block">${escHtml(jurisdictionLabel(l.jurisdiction))}</span>`
-            : '<span class="text-muted" style="font-size:.72rem">—</span>'}
-        </td>
-        <td class="text-muted">${escHtml(l.source || '')}</td>
-        <td class="text-muted" style="white-space:nowrap">${fmtDate(l.updated_at)}</td>
-        <td>
-          <div class="row-actions">
-            <button class="btn-edit"   onclick="App.editLead('${l.id}')">Edit</button>
-            <button class="btn-delete" onclick="App.confirmDelete('${l.id}', '${escHtml(l.name || 'this lead')}')">Delete</button>
-            ${enrichBtn}
-          </div>
-        </td>
-      </tr>`;
-    }).join('');
-  }
-
-  function escHtml(s) {
-    return String(s)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }
-
-  // ── Form helpers ──────────────────────────────────────────────────────────
-  function clearForm() {
-    editingId = null;
-    document.getElementById('lead-id').value        = '';
-    document.getElementById('f-name').value         = '';
-    document.getElementById('f-company').value      = '';
-    document.getElementById('f-email').value        = '';
-    document.getElementById('f-phone').value        = '';
-    document.getElementById('f-status').value       = 'new';
-    document.getElementById('f-source').value       = '';
-    document.getElementById('f-permit').value       = '';
-    document.getElementById('f-jurisdiction').value = 'seattle';
-    document.getElementById('f-notes').value        = '';
-    document.getElementById('form-title').textContent         = 'Add Lead';
-    document.getElementById('btn-save-form').textContent      = appState === 'OFFLINE' ? 'Add Lead (queued)' : 'Add Lead';
-    document.getElementById('btn-cancel-form').style.display  = 'none';
-  }
-
-  function fillForm(lead) {
-    editingId = lead.id;
-    document.getElementById('lead-id').value        = lead.id;
-    document.getElementById('f-name').value         = lead.name          || '';
-    document.getElementById('f-company').value      = lead.company       || '';
-    document.getElementById('f-email').value        = lead.email         || '';
-    document.getElementById('f-phone').value        = lead.phone         || '';
-    document.getElementById('f-status').value       = lead.status        || 'new';
-    document.getElementById('f-source').value       = lead.source        || '';
-    document.getElementById('f-permit').value       = lead.permit_number || '';
-    document.getElementById('f-jurisdiction').value = lead.jurisdiction  || 'seattle';
-    document.getElementById('f-notes').value        = lead.notes         || '';
-    document.getElementById('form-title').textContent         = 'Edit Lead';
-    document.getElementById('btn-save-form').textContent      = appState === 'OFFLINE' ? 'Update Lead (queued)' : 'Update Lead';
-    document.getElementById('btn-cancel-form').style.display  = '';
-    document.getElementById('f-name').focus();
-    document.getElementById('f-name').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }
-
-  // ── Client switcher ──────────────────────────────────────────────────────
-  function buildClientSwitcher(selectEl) {
-    selectEl.innerHTML = CFG.CLIENTS.map((c, i) =>
-      `<option value="${i}">${escHtml(c.label)}</option>`
-    ).join('');
-  }
-
-  async function switchClient(clientIndex, password) {
-    const client = CFG.CLIENTS[clientIndex];
-    if (!client) return;
-
-    await sb.auth.signOut();
-    leads = [];
-    enrichmentMap = {};
-    render();
-    setState('INIT');
-
-    const { error } = await sb.auth.signInWithPassword({
-      email:    client.email,
-      password: password || client.password
-    });
-
-    if (error) {
-      return { error };
-    }
-
-    activeClient = client;
-
-    const q = getQueue();
-    if (q.length > 0) await sync();
-
-    await load();
-    startSyncLoop();
-    return { ok: true };
-  }
-
-  // ── Connectivity listeners ───────────────────────────────────────────────
-  function startSyncLoop() {
-    clearInterval(syncTimer);
-    syncTimer = setInterval(async () => {
-      if (appState === 'OFFLINE' || getQueue().length > 0) {
-        await sync();
-      }
-    }, 30000);
-  }
-
-  window.addEventListener('online',  () => sync());
-  window.addEventListener('focus',   () => { if (appState === 'OFFLINE' || getQueue().length > 0) sync(); });
-
-  // ── Export CSV ───────────────────────────────────────────────────────────
-  function exportCSV() {
-    const cols = ['name','company','email','phone','status','permit_number','jurisdiction','source','notes','updated_at'];
-    const rows = [cols.join(',')].concat(
-      getFilteredLeads().map(l =>
-        cols.map(c => '"' + String(l[c] || '').replace(/"/g, '""') + '"').join(',')
-      )
-    );
-    const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href = url;
-    a.download = `leads_${activeClient ? activeClient.label.replace(/\s+/g,'_') : 'export'}_${new Date().toISOString().slice(0,10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  // ── Public API (called from inline onclick) ──────────────────────────────
-  window.App = {
-    editLead(id) {
-      const lead = leads.find(l => l.id === id);
-      if (lead) fillForm(lead);
-    },
-
-    confirmDelete(id, name) {
-      document.getElementById('confirm-title').textContent   = 'Delete Lead';
-      document.getElementById('confirm-message').textContent = `Delete "${name}"? This cannot be undone.`;
-      document.getElementById('confirm-overlay').classList.add('show');
-      confirmCb = () => deleteLead(id);
-    },
-
-    // ── Single lead enrichment via actor ──────────────────────────────────
-    async enrichLead(id) {
-      const lead = leads.find(l => l.id === id);
-      if (!lead) return;
-      if (!lead.permit_number) {
-        showBanner('Add a Permit # to this lead before enriching.', 'offline', 4000);
-        return;
-      }
-      if (!window.actorEnrich) {
-        showBanner('Actor client not loaded — check actor-client.js path.', 'offline', 4000);
-        return;
-      }
-      showBanner(`⚡ Enriching permit ${lead.permit_number}…`, 'syncing');
-      const result = await window.actorEnrich(lead.permit_number, lead.jurisdiction || 'seattle');
-      if (result && result.success) {
-        const score = result.data && result.data.scoring ? result.data.scoring.score : '?';
-        const golden = result.data && result.data.scoring && result.data.scoring.golden_lead;
-        showBanner(`${golden ? '🏆 Golden lead! ' : ''}Enriched — Score: ${score}`, 'info', 5000);
-      } else {
-        showBanner(`Enrichment failed: ${(result && result.error) || 'unknown error'}`, 'offline', 5000);
-      }
-    },
-
-    // ── Bulk enrichment — all leads with permit_number ─────────────────────
-    async bulkEnrich() {
-      if (!window.actorEnrichBatch) {
-        showBanner('Actor client not loaded — check actor-client.js path.', 'offline', 4000);
-        return;
-      }
-      const targets = leads.filter(l => l.permit_number && !String(l.permit_number).startsWith('demo_'));
-      if (targets.length === 0) {
-        showBanner('No leads with permit numbers. Add a Permit # to leads first.', 'offline', 5000);
-        return;
-      }
-      const btn = document.getElementById('btn-bulk-enrich');
-      btn.disabled = true;
-      btn.textContent = `⏳ Enriching ${targets.length}…`;
-      showBanner(`⚡ Bulk enriching ${targets.length} permits — this may take a minute…`, 'syncing');
-
-      const payload = targets.map(l => ({
-        permit_number: l.permit_number,
-        jurisdiction:  l.jurisdiction || 'seattle',
-      }));
-
-      try {
-        const result = await window.actorEnrichBatch(payload);
-        const ok  = (result.results || []).filter(r => r.success).length;
-        const bad = targets.length - ok;
-        const goldens = (result.results || []).filter(r => r.success && r.data && r.data.scoring && r.data.scoring.golden_lead).length;
-        showBanner(`Bulk done — ${ok} enriched${goldens ? ', ' + goldens + ' golden 🏆' : ''}, ${bad} failed.`, 'info', 7000);
-      } catch (err) {
-        showBanner(`Bulk enrich error: ${err.message}`, 'offline', 6000);
-      } finally {
-        btn.disabled = false;
-        btn.textContent = '⚡ Bulk Enrich';
+  const mergeResult = (result, label) => {
+    if (!result) return;
+    if (result.leads) {
+      for (const l of result.leads) {
+        if (LEADS.find(x => x.id === l.id)) continue;
+        LEADS.push(l);
+        totalAdded++;
       }
     }
+    if (result.summary) sourceSummaries.push(result.summary);
   };
 
-  // ── Boot ─────────────────────────────────────────────────────────────────
-  document.addEventListener('DOMContentLoaded', async function () {
+  try {
+    if (sources.includes('seattle_dci_application') && !STOPFLAG) mergeResult(await scrapeSeattleDCI(), 'Seattle');
+    if (sources.includes('king_county') && !STOPFLAG) mergeResult(await scrapeKingCounty(), 'KC');
+    if (sources.includes('pierce_county') && !STOPFLAG) mergeResult(await scrapePierceCounty(), 'PC');
+    if (sources.includes('snohomish_county') && !STOPFLAG) mergeResult(await scrapeSnohomish(), 'Sno');
+  } catch(e) {
+    console.error(e);
+    sourceSummaries.push(`❌ Hunt error: ${e.message}`);
+  }
 
-    // Populate login client dropdown
-    const loginSelect = document.getElementById('login-client-select');
-    buildClientSwitcher(loginSelect);
+  save();
+  rerender();
 
-    // Populate in-app client switcher
-    const clientSelect = document.getElementById('client-select');
-    buildClientSwitcher(clientSelect);
+  RUNNING = false;
+  STOPFLAG = false;
+  btn.textContent = '▶ Start Hunt';
+  btn.classList.remove('stop');
 
-    // Actor health pill — click to re-check
-    const actorPill = document.getElementById('actor-status');
-    if (actorPill) actorPill.addEventListener('click', checkActorHealth);
+  // Persistent final status with breakdown — DOES NOT overwrite source diagnostics
+  const finalMsg = totalAdded > 0
+    ? `✓ Hunt complete. ${totalAdded} new opportunities added. ${sourceSummaries.join(' · ')}`
+    : `⚠ Hunt complete. 0 opportunities added. ${sourceSummaries.join(' · ')}`;
+  logStatus(finalMsg, totalAdded > 0 ? 'idle' : 'error');
+  console.log('Hunt diagnostics:', sourceSummaries);
+}
 
-    // Check for existing session
-    const { data: { session } } = await sb.auth.getSession();
-    if (session) {
-      const user = session.user;
-      const idx  = CFG.CLIENTS.findIndex(c => c.email === user.email);
-      activeClient = idx >= 0 ? CFG.CLIENTS[idx] : CFG.CLIENTS[0];
-      if (clientSelect) clientSelect.value = idx >= 0 ? idx : 0;
+function clearAll() {
+  if (!confirm('Clear all leads? This cannot be undone.')) return;
+  LEADS = [];
+  save();
+  rerender();
+}
 
-      showApp();
-      await load();
-      startSyncLoop();
-      checkActorHealth();
+// ═══════════════════════════════════════════════════════════════════════════
+// RENDERING
+// ═══════════════════════════════════════════════════════════════════════════
+function renderKPIs() {
+  document.getElementById('kpiTotal').textContent = LEADS.length;
+  document.getElementById('kpiPrePermit').textContent = LEADS.filter(l =>
+    ['application','intake','review','correction','pre_issuance'].includes(l.stage)
+  ).length;
+  document.getElementById('kpiNoGC').textContent = LEADS.filter(l => l.no_gc).length;
+  document.getElementById('kpiEnriched').textContent = LEADS.filter(l => l.fully_enriched).length;
+  document.getElementById('kpiHandoffReady').textContent = LEADS.filter(l => l.ready_for_handoff).length;
+
+  document.getElementById('tabHuntBadge').textContent = LEADS.filter(l => l.state === 'new').length;
+  document.getElementById('tabPipeBadge').textContent = LEADS.filter(l => ['contacted','qualified'].includes(l.state)).length;
+  document.getElementById('tabHandoffBadge').textContent = LEADS.filter(l => l.state === 'handoff' || l.ready_for_handoff).length;
+}
+
+function renderHunt() {
+  const q = document.getElementById('huntSearch').value.trim().toLowerCase();
+  const cat = document.getElementById('huntCatFilter').value;
+  const status = document.getElementById('huntStatusFilter').value;
+  const gc = document.getElementById('huntGCFilter').value;
+  const county = document.getElementById('huntCountyFilter').value;
+  const minValue = parseFloat(document.getElementById('huntValueFilter').value) || 0;
+  const sort = document.getElementById('huntSortFilter').value;
+  const onlyEnriched = document.getElementById('huntEnrichedToggle').classList.contains('on');
+
+  let arr = LEADS.filter(l => l.state === 'new' && !l.is_excluded);
+  if (q) arr = arr.filter(l =>
+    `${l.title} ${l.description} ${l.address} ${l.owner_name} ${l.contractor_name} ${l.architect_name}`.toLowerCase().includes(q)
+  );
+  if (cat) arr = arr.filter(l => l.category && l.category.code === cat);
+  if (status === 'prepermit') arr = arr.filter(l => ['application','intake'].includes(l.stage));
+  else if (status === 'review') arr = arr.filter(l => ['review','correction','pre_issuance'].includes(l.stage));
+  else if (status === 'issued_recent') arr = arr.filter(l => l.stage === 'issued_lt_14d');
+  if (gc === 'none') arr = arr.filter(l => l.no_gc);
+  else if (gc === 'has') arr = arr.filter(l => !l.no_gc);
+  if (county) arr = arr.filter(l => String(l.county || '').toUpperCase() === county);
+  if (minValue) arr = arr.filter(l => (l.value || 0) >= minValue);
+  if (onlyEnriched) arr = arr.filter(l => l.fully_enriched);
+
+  if (sort === 'recent') arr.sort((a,b) => (b.posted_ts || 0) - (a.posted_ts || 0));
+  else if (sort === 'value') arr.sort((a,b) => (b.value || 0) - (a.value || 0));
+  else if (sort === 'status') {
+    const order = { application:0, intake:1, review:2, correction:3, pre_issuance:4, issued_lt_14d:5, issued_lt_30d:6, issued_old:7 };
+    arr.sort((a,b) => (order[a.stage]||9) - (order[b.stage]||9));
+  }
+  else arr.sort((a,b) => (b.score || 0) - (a.score || 0));
+
+  renderLeadList('huntList', arr,
+    'No new opportunities. Click "Start Hunt" to fetch pre-permit & application-stage projects.');
+}
+
+function renderPipeline() {
+  const q = document.getElementById('pipeSearch').value.trim().toLowerCase();
+  const state = document.getElementById('pipeStateFilter').value;
+  let arr = LEADS.filter(l => l.state !== 'new' && !l.is_excluded);
+  if (state) arr = arr.filter(l => l.state === state);
+  if (q) arr = arr.filter(l =>
+    `${l.title} ${l.description} ${l.address} ${l.owner_name}`.toLowerCase().includes(q)
+  );
+  arr.sort((a,b) => {
+    const order = { handoff:0, qualified:1, contacted:2, won:3, lost:4 };
+    return (order[a.state]||9) - (order[b.state]||9);
+  });
+  renderLeadList('pipelineList', arr,
+    'Pipeline empty. Mark leads as "Contacted" from the Hunt view to move them here.');
+}
+
+function renderHandoffs() {
+  const arr = LEADS.filter(l => l.ready_for_handoff || l.state === 'handoff');
+  arr.sort((a,b) => (b.score || 0) - (a.score || 0));
+  renderLeadList('handoffList', arr,
+    'No briefs ready for handoff. Leads become handoff-ready when they\'re fully enriched, score ≥70, and have no GC of record.');
+}
+
+function renderLeadList(containerId, arr, emptyMsg) {
+  const c = document.getElementById(containerId);
+  if (!c) return;
+  if (!arr.length) {
+    c.innerHTML = `<div class="empty-msg">
+      <div class="em-eyebrow">No matches</div>
+      <div class="em-title">Nothing here yet</div>
+      <p>${escapeHtml(emptyMsg)}</p>
+    </div>`;
+    return;
+  }
+  c.innerHTML = arr.map(renderLeadRow).join('');
+}
+
+function isGeoProximity(l) {
+  // Pierce County, Bonney Lake area, or Puyallup/Auburn ZIP belt near Tim's base
+  const pierceCities = new Set(['bonney lake','puyallup','sumner','auburn','tacoma','fife','milton','edgewood','federal way','kent','renton','covington','maple valley','black diamond','enumclaw']);
+  const city = (l.city || '').toLowerCase().trim();
+  const county = (l.county || '').toUpperCase();
+  return county === 'PIERCE' || pierceCities.has(city);
+}
+
+function quickApprove(id, e) {
+  e.stopPropagation();
+  const l = LEADS.find(x => x.id === id);
+  if (!l) return;
+  if (l.quick_action === 'approved') { l.quick_action = null; }
+  else { l.quick_action = 'approved'; l.state = l.state === 'new' ? 'contacted' : l.state; }
+  save(); rerender();
+}
+
+function quickDiscard(id, e) {
+  e.stopPropagation();
+  const l = LEADS.find(x => x.id === id);
+  if (!l) return;
+  if (l.quick_action === 'discarded') { l.quick_action = null; }
+  else { l.quick_action = 'discarded'; l.is_excluded = true; }
+  save(); rerender();
+}
+
+function renderLeadRow(l) {
+  const sel = CURRENT_LEAD_ID === l.id ? ' selected' : '';
+  const qualifiedCls = l.ready_for_handoff ? ' qualified' : '';
+  const approvedCls = l.quick_action === 'approved' ? ' approved' : '';
+  const discardedCls = l.quick_action === 'discarded' ? ' discarded' : '';
+  const catTag = l.category ?
+    `<span class="lead-tag tag-cat-${l.category.code}">${escapeHtml(l.category.label)}</span>` :
+    `<span class="lead-tag tag-cat-default">UNCATEGORIZED</span>`;
+  const stageInfo = l.stage ? STAGE_LABELS[l.stage] : null;
+  const stageTag = stageInfo ? `<span class="lead-tag ${stageInfo.cls}">${stageInfo.label}</span>` : '';
+  const sourceTag = `<span class="lead-tag tag-source">${escapeHtml(l.source_label || l.source)}</span>`;
+  const intentTag = l.intent_level ?
+    `<span class="intent-badge intent-${l.intent_level}">${l.intent_level === 'hot' ? '🔥 HOT' : l.intent_level === 'warm' ? '⚡ WARM' : '❄ COLD'}</span>` : '';
+  const noGCTag = l.no_gc ? '<span class="no-contractor-flag">⊘ NO GC</span>' : '';
+
+  // Vetted badge — direct owner/architect contact available
+  const hasDirectContact = !!(l.owner_phone || l.owner_email);
+  const vettedBadge = hasDirectContact ?
+    '<span class="vetted-badge">✓ VETTED · CONTACT OK</span>' : '';
+
+  // Geographic proximity badge — Bonney Lake / Pierce County proximity
+  const geoBadge = isGeoProximity(l) ?
+    '<span class="geo-badge">📍 NEARBY · PIERCE</span>' : '';
+
+  const why = (l.why_relevant || []).slice(0, 3);
+  const whyStrip = why.length ?
+    `<div class="why-strip">${why.map(w => `<span class="why-chip">${escapeHtml(w)}</span>`).join('')}</div>` : '';
+
+  // Enrichment status strip
+  const enrichBits = [];
+  enrichBits.push(`<span class="${l.owner_name ? 'ok' : 'missing'}">Owner: ${l.owner_name ? '✓' : '?'}</span>`);
+  if (l.owner_phone) enrichBits.push(`<span class="ok">📞 ${escapeHtml(l.owner_phone)}</span>`);
+  else enrichBits.push(`<span class="missing">📞 —</span>`);
+  if (l.owner_email) enrichBits.push(`<span class="ok">✉ ${escapeHtml(l.owner_email)}</span>`);
+  else enrichBits.push(`<span class="missing">✉ —</span>`);
+  enrichBits.push(`<span class="${l.architect_name ? 'ok' : 'missing'}">Arch: ${l.architect_name ? '✓' : '?'}</span>`);
+  if (l.value) enrichBits.push(`<b>${fmtMoney(l.value)}</b>`);
+  if (l.unit_count) enrichBits.push(`<b>${l.unit_count} units</b>`);
+  const enrichStrip = `<div class="enrichment-strip">${enrichBits.join(' · ')}</div>`;
+
+  const stateInfo = LEAD_STATES[l.state] || LEAD_STATES.new;
+  const isApproved = l.quick_action === 'approved';
+  const isDiscarded = l.quick_action === 'discarded';
+
+  // GC verification badge for the lead row
+  const gcVerifiedBadge = l.gc_verified_ts
+    ? (l.gc_verified_none
+        ? '<span class="no-contractor-flag" title="GC verified via portal">✓ GC VERIFIED NONE</span>'
+        : l.gc_verified_name
+          ? `<span style="padding:3px 9px;border-radius:6px;font-size:10px;font-weight:700;background:rgba(239,68,68,0.15);color:var(--hot)">⚠ GC: ${escapeHtml(l.gc_verified_name.slice(0,20))}</span>`
+          : '')
+    : '';
+
+  // Confidence mini-badge
+  const conf = computeConfidence(l);
+  const confColor = conf.score >= 70 ? 'var(--green)' : conf.score >= 45 ? 'var(--warm)' : 'var(--hot)';
+  const confBadge = `<span style="font-size:9px;font-weight:700;color:${confColor};padding:2px 6px;border-radius:4px;background:rgba(255,255,255,0.05);border:1px solid ${confColor}40" title="Data confidence score">⊙ ${conf.score}</span>`;
+
+  return `<div class="lead-row${sel}${qualifiedCls}${approvedCls}${discardedCls}" onclick="openDrawer('${l.id}')">
+    <div class="lead-score">
+      <div class="num">${l.score || '—'}</div>
+      <div class="lbl">SCORE</div>
+    </div>
+    <div class="lead-body">
+      <div class="lead-title">${escapeHtml((l.title || '(no title)').slice(0,120))}</div>
+      <div class="lead-meta">
+        ${intentTag}
+        ${noGCTag}
+        ${gcVerifiedBadge}
+        ${catTag}
+        ${stageTag}
+        ${sourceTag}
+        ${confBadge}
+        ${vettedBadge}
+        ${geoBadge}
+        <span>${escapeHtml(l.city || l.location_hint || '')} ${l.county ? '· ' + l.county : ''}</span>
+      </div>
+      ${whyStrip}
+      ${enrichStrip}
+    </div>
+    <span class="lead-state ${stateInfo.cls}">${stateInfo.label}</span>
+    <span class="lead-date">${l.posted_ts ? relTime(l.posted_ts) : '—'}</span>
+    <div class="lead-actions">
+      ${l.owner_phone ? `<a class="icon-btn" href="tel:${escapeHtml(l.owner_phone)}" onclick="event.stopPropagation()" title="Call owner">📞</a>` : ''}
+      ${l.url ? `<a class="icon-btn" href="${escapeHtml(l.url)}" target="_blank" onclick="event.stopPropagation()" title="View permit">↗</a>` : ''}
+      <button class="icon-btn" onclick="event.stopPropagation();verifyGCStatus('${l.id}')" title="${l.gc_verified_ts ? 'Re-verify GC status' : 'Verify GC status'}" style="${l.gc_verified_ts ? 'color:var(--eb-green2)' : ''}">🔍</button>
+      <div class="quick-actions">
+        <button class="btn-approve ${isApproved ? 'done' : ''}" onclick="quickApprove('${l.id}',event)" title="Approve for outreach">${isApproved ? '✓ Approved' : '✓ Approve'}</button>
+        <button class="btn-discard ${isDiscarded ? 'done' : ''}" onclick="quickDiscard('${l.id}',event)" title="Discard lead">${isDiscarded ? 'Discarded' : '✕ Discard'}</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DRAWER
+// ═══════════════════════════════════════════════════════════════════════════
+function openDrawer(id) {
+  const l = LEADS.find(x => x.id === id);
+  if (!l) return;
+  CURRENT_LEAD_ID = id;
+  document.getElementById('drawer').classList.add('on');
+  renderDrawer(l);
+}
+
+function closeDrawer() {
+  document.getElementById('drawer').classList.remove('on');
+  CURRENT_LEAD_ID = null;
+  rerender();
+}
+
+function renderDrawer(l) {
+  const c = document.getElementById('drawerContent');
+  const stageInfo = l.stage ? STAGE_LABELS[l.stage] : null;
+  const catLabel = l.category ? l.category.label : 'Uncategorized';
+
+  c.innerHTML = `
+    <div class="drawer-eyebrow">${escapeHtml(catLabel)} · ${escapeHtml(l.source_label || l.source)}</div>
+    <h2 class="drawer-title">${escapeHtml(l.title || '(no title)')}</h2>
+    <div class="drawer-sub">${escapeHtml((l.description || '').slice(0, 320))}${(l.description||'').length > 320 ? '…' : ''}</div>
+    <div class="drawer-meta-row">
+      ${l.intent_level ? `<span class="intent-badge intent-${l.intent_level}">${l.intent_level === 'hot' ? '🔥 HOT' : l.intent_level === 'warm' ? '⚡ WARM' : '❄ COLD'} · Score ${l.score}</span>` : ''}
+      ${stageInfo ? `<span class="lead-tag ${stageInfo.cls}">${stageInfo.label}</span>` : ''}
+      ${l.no_gc ? '<span class="no-contractor-flag">⊘ NO GC OF RECORD</span>' : ''}
+      ${l.ready_for_handoff ? '<span class="urgent-flag">★ READY FOR HANDOFF</span>' : ''}
+    </div>
+
+    <div class="drawer-section">
+      <div class="drawer-section-title">PROJECT FACTS</div>
+      <div class="dr-field"><span class="dr-field-label">Category</span><span class="dr-field-value">${escapeHtml(catLabel)}</span></div>
+      <div class="dr-field"><span class="dr-field-label">Address</span><span class="dr-field-value">${escapeHtml(l.address || '—')}</span></div>
+      <div class="dr-field"><span class="dr-field-label">City / County</span><span class="dr-field-value">${escapeHtml(l.city || '—')}, ${escapeHtml(l.county || '—')}</span></div>
+      <div class="dr-field"><span class="dr-field-label">Est. Value</span><span class="dr-field-value">${fmtMoney(l.value)}</span></div>
+      ${l.unit_count ? `<div class="dr-field"><span class="dr-field-label">Units</span><span class="dr-field-value">${l.unit_count}</span></div>` : ''}
+      <div class="dr-field"><span class="dr-field-label">Permit #</span><span class="dr-field-value">${escapeHtml(l.permit_number || '—')}</span></div>
+      <div class="dr-field"><span class="dr-field-label">Permit Status</span><span class="dr-field-value">${escapeHtml(l.permit_status_raw || (stageInfo ? stageInfo.label : '—'))}</span></div>
+      <div class="dr-field"><span class="dr-field-label">Applied</span><span class="dr-field-value">${l.application_date || '—'}</span></div>
+      <div class="dr-field"><span class="dr-field-label">Issued</span><span class="dr-field-value">${l.issued_date || '—'}</span></div>
+    </div>
+
+    <div class="drawer-section">
+      <div class="drawer-section-title">DECISION-MAKER ENRICHMENT</div>
+      <div class="dr-field"><span class="dr-field-label">Owner Name</span><span class="dr-field-value ${l.owner_name ? 'ok' : 'missing'}">${escapeHtml(l.owner_name || 'NEEDS LOOKUP')}</span></div>
+      <div class="dr-field"><span class="dr-field-label">Owner Phone</span><span class="dr-field-value ${l.owner_phone ? 'ok' : 'missing'}">${escapeHtml(l.owner_phone || 'NEEDS LOOKUP')}</span></div>
+      <div class="dr-field"><span class="dr-field-label">Owner Email</span><span class="dr-field-value ${l.owner_email ? 'ok' : 'missing'}">${escapeHtml(l.owner_email || 'NEEDS LOOKUP')}</span></div>
+      <div class="dr-field"><span class="dr-field-label">Architect</span><span class="dr-field-value ${l.architect_name ? 'ok' : 'missing'}">${escapeHtml(l.architect_name || 'NEEDS LOOKUP')}</span></div>
+      <div class="dr-field"><span class="dr-field-label">Owner's Rep</span><span class="dr-field-value ${l.owners_rep ? 'ok' : 'missing'}">${escapeHtml(l.owners_rep || 'NEEDS LOOKUP')}</span></div>
+      <div class="dr-field"><span class="dr-field-label">GC of Record</span><span class="dr-field-value ${l.no_gc ? 'ok' : ''}">${l.no_gc ? '✓ NONE — slot open' : escapeHtml(l.contractor_name)}</span></div>
+
+      <div class="dr-actions">
+        <button class="dr-btn" onclick="promptEnrich('${l.id}','owner_name','Owner full name')">+ Add owner name</button>
+        <button class="dr-btn" onclick="promptEnrich('${l.id}','owner_phone','Owner phone')">+ Phone</button>
+        <button class="dr-btn" onclick="promptEnrich('${l.id}','owner_email','Owner email')">+ Email</button>
+        <button class="dr-btn" onclick="promptEnrich('${l.id}','architect_name','Architect firm')">+ Architect</button>
+        <button class="dr-btn" onclick="promptEnrich('${l.id}','owners_rep','Owner\\'s rep')">+ Owner's rep</button>
+      </div>
+    </div>
+
+    <div class="drawer-section">
+      <div class="drawer-section-title">GC STATUS · DATA SOURCES · CONFIDENCE</div>
+      ${renderGCPanel(l)}
+    </div>
+
+    <div class="drawer-section">
+      <div class="drawer-section-title">ENRICHMENT TOOLS</div>
+      <p style="font-size:11px;color:var(--text2);margin-bottom:10px">Open these in new tabs to find owner / architect contact info:</p>
+      <div class="search-links">
+        <a class="search-link" target="_blank" href="https://blue.kingcounty.com/Assessor/eRealProperty/Detail.aspx?ParcelNbr=&Address=${encodeURIComponent(l.address || '')}">🏠 King Co Parcel</a>
+        <a class="search-link" target="_blank" href="https://atlas.piercecountywa.gov/atlas/?address=${encodeURIComponent(l.address || '')}">🏠 Pierce Co Parcel</a>
+        <a class="search-link" target="_blank" href="https://www.snoco.org/proptax/(S(asgdpdkitknjmm45wkmgowmu))/search.aspx?search_string=${encodeURIComponent(l.address || '')}">🏠 Snohomish Parcel</a>
+        <a class="search-link" target="_blank" href="https://www.google.com/search?q=${encodeURIComponent(l.address + ' owner Washington')}">🔍 Google owner</a>
+        <a class="search-link" target="_blank" href="https://www.linkedin.com/search/results/all/?keywords=${encodeURIComponent((l.owner_name || l.address) + ' Seattle developer')}">💼 LinkedIn</a>
+        <a class="search-link" target="_blank" href="https://opencorporates.com/companies?q=${encodeURIComponent(l.owner_name || '')}">🏢 OpenCorporates</a>
+        <a class="search-link" target="_blank" href="${l.url || '#'}">📋 Original permit</a>
+        <a class="search-link" target="_blank" href="https://cosaccela.seattle.gov/Portal/Cap/CapList.aspx">🏛 Seattle Accela</a>
+        <a class="search-link" target="_blank" href="https://data.seattle.gov/resource/76t5-zqzr.json?permitnum=${encodeURIComponent((l.permit_number||'').replace(/-/g,'').replace(/CN$/,''))}">⬡ Seattle Open Data</a>
+      </div>
+    </div>
+
+    <div class="drawer-section">
+      <div class="drawer-section-title">DECISION-MAKER BRIEF (for Tim / Ashley)</div>
+      <div class="brief-output" id="briefOutput">${escapeHtml(generateBrief(l))}</div>
+      <div class="dr-actions">
+        <button class="dr-btn primary" onclick="copyBrief('${l.id}')">📋 Copy brief</button>
+        <button class="dr-btn" onclick="generateEmail('${l.id}','tim')">✉ Draft email to Tim</button>
+        <button class="dr-btn" onclick="generateEmail('${l.id}','owner')">✉ Draft email to owner</button>
+      </div>
+    </div>
+
+    <div class="drawer-section">
+      <div class="drawer-section-title">STATE & ACTIONS</div>
+      <div class="dr-actions">
+        <button class="dr-btn ${l.state === 'contacted' ? 'primary' : ''}" onclick="setState('${l.id}','contacted')">📞 Contacted</button>
+        <button class="dr-btn ${l.state === 'qualified' ? 'primary' : ''}" onclick="setState('${l.id}','qualified')">⭐ Qualified</button>
+        <button class="dr-btn ${l.state === 'handoff' ? 'primary' : ''}" onclick="setState('${l.id}','handoff')">🤝 Handed off to Tim</button>
+        <button class="dr-btn ${l.state === 'won' ? 'primary' : ''}" onclick="setState('${l.id}','won')">✓ Contract won</button>
+        <button class="dr-btn danger ${l.state === 'lost' ? 'primary' : ''}" onclick="setState('${l.id}','lost')">✕ Lost</button>
+      </div>
+    </div>
+
+    <div class="drawer-section">
+      <div class="drawer-section-title">NOTES</div>
+      <textarea id="leadNotes" style="width:100%;background:#050709;border:1px solid var(--border2);color:var(--text);padding:10px;border-radius:8px;font-family:inherit;font-size:12px;min-height:80px"
+        onchange="saveNotes('${l.id}', this.value)">${escapeHtml(l.notes || '')}</textarea>
+    </div>
+
+    <div class="drawer-section">
+      <div class="drawer-section-title">SCORING BREAKDOWN</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.7;color:var(--text2)">
+        ${(l.score_reasons || []).map(r => `<div>${escapeHtml(r)}</div>`).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function promptEnrich(id, field, label) {
+  const l = LEADS.find(x => x.id === id);
+  if (!l) return;
+  const val = prompt(label + ':', l[field] || '');
+  if (val === null) return;
+  l[field] = val.trim();
+  scoreLead(l);
+  save();
+  renderDrawer(l);
+  rerender();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GC VERIFICATION ENGINE — checks real GC status from Seattle portal sources
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Toggle the GC verification panel open/close
+function toggleGCPanel(id) {
+  const body = document.getElementById('gcVerifyBody_' + id);
+  if (!body) return;
+  body.classList.toggle('open');
+}
+
+// Compute data confidence score (0–100) for a lead
+function computeConfidence(l) {
+  let score = 0;
+  const fields = [];
+
+  // GC status — the critical field
+  if (l.gc_verified_ts) {
+    score += 30;
+    fields.push({ label: 'GC status', status: 'live', detail: l.gc_verified_source || 'Portal verified' });
+  } else if (l.contractor_name !== undefined) {
+    score += 12;
+    fields.push({ label: 'GC status', status: 'inferred', detail: 'From permit dataset (unverified)' });
+  } else {
+    fields.push({ label: 'GC status', status: 'missing', detail: 'Not checked yet' });
+  }
+
+  // Permit stage
+  if (l.stage) {
+    score += 15;
+    fields.push({ label: 'Permit stage', status: 'live', detail: `${STAGE_LABELS[l.stage]?.label || l.stage} — from dataset` });
+  }
+
+  // Owner info
+  if (l.owner_name && (l.owner_phone || l.owner_email)) {
+    score += 25;
+    fields.push({ label: 'Owner contact', status: 'manual', detail: `${l.owner_name} · ${l.owner_phone || l.owner_email}` });
+  } else if (l.owner_name) {
+    score += 12;
+    fields.push({ label: 'Owner name', status: 'manual', detail: l.owner_name });
+  } else {
+    fields.push({ label: 'Owner contact', status: 'missing', detail: 'Not enriched' });
+  }
+
+  // Architect
+  if (l.architect_name) {
+    score += 10;
+    fields.push({ label: 'Architect', status: 'manual', detail: l.architect_name });
+  } else {
+    fields.push({ label: 'Architect', status: 'missing', detail: 'Not enriched' });
+  }
+
+  // Value
+  if (l.value) {
+    score += 10;
+    fields.push({ label: 'Project value', status: 'live', detail: fmtMoney(l.value) + ' — from permit' });
+  }
+
+  // Recency
+  if (l.posted_ts && (Date.now() - l.posted_ts) < 14 * 86400000) {
+    score += 10;
+    fields.push({ label: 'Data freshness', status: 'live', detail: relTime(l.posted_ts) });
+  } else {
+    score += 3;
+    fields.push({ label: 'Data freshness', status: 'inferred', detail: l.posted_ts ? relTime(l.posted_ts) : 'Unknown' });
+  }
+
+  return { score: Math.min(100, score), fields };
+}
+
+// Render the GC verification panel HTML
+function renderGCPanel(l) {
+  const conf = computeConfidence(l);
+  const confClass = conf.score >= 70 ? 'conf-high' : conf.score >= 45 ? 'conf-mid' : 'conf-low';
+  const confLabel = conf.score >= 70 ? 'HIGH' : conf.score >= 45 ? 'MEDIUM' : 'LOW';
+
+  // GC status badge
+  let gcStatusCls = 'gc-status-unknown';
+  let gcStatusLabel = 'NOT CHECKED';
+  if (l.gc_verified_ts) {
+    if (l.gc_verified_none) {
+      gcStatusCls = 'gc-status-confirmed-none';
+      gcStatusLabel = '✓ NO GC — VERIFIED';
+    } else if (l.gc_verified_name) {
+      gcStatusCls = 'gc-status-has-gc';
+      gcStatusLabel = 'GC ON FILE';
+    } else {
+      gcStatusCls = 'gc-status-pending';
+      gcStatusLabel = 'INCONCLUSIVE';
     }
+  }
 
-    // ── Login form ────────────────────────────────────────────────────────
-    const btnLogin  = document.getElementById('btn-login');
-    const pwInput   = document.getElementById('login-password');
-    const loginErr  = document.getElementById('login-error');
+  // Sources checked display
+  const sources = l.gc_sources || [];
+  const sourcesHtml = sources.length > 0 ? sources.map(s => `
+    <div class="gc-source-row">
+      <div class="gc-source-icon ${s.type}">
+        ${s.type === 'portal' ? '📋' : s.type === 'parcel' ? '🏠' : '🔍'}
+      </div>
+      <div class="gc-source-info">
+        <div class="gc-source-name">${escapeHtml(s.name)}</div>
+        <div class="gc-source-detail">
+          ${s.gc_found
+            ? `<span class="gc-found">⚠ GC found: ${escapeHtml(s.gc_found)}</span>`
+            : s.checked
+              ? `<span class="gc-none">✓ No contractor of record in this source</span>`
+              : `<span class="gc-pending">⏸ Not checked</span>`}
+          ${s.detail ? `<br>${escapeHtml(s.detail)}` : ''}
+        </div>
+      </div>
+      <div class="gc-source-time">${s.ts ? relTime(s.ts) : ''}</div>
+    </div>
+  `).join('') : `
+    <div style="padding:12px 0;text-align:center;color:var(--text3);font-size:11px">
+      No sources checked yet. Click "Verify GC Status" to check all sources.
+    </div>`;
 
-    async function doLogin() {
-      const idx    = parseInt(loginSelect.value, 10);
-      const client = CFG.CLIENTS[idx];
-      const pw     = pwInput.value.trim() || client.password;
+  // Confidence fields
+  const fieldsHtml = conf.fields.map(f => {
+    const badgeMap = {
+      live: '<span class="data-source-badge dsb-live">● live</span>',
+      portal: '<span class="data-source-badge dsb-portal">◈ portal</span>',
+      manual: '<span class="data-source-badge dsb-manual">✎ manual</span>',
+      inferred: '<span class="data-source-badge dsb-inferred">∼ inferred</span>',
+      missing: '<span class="data-source-badge" style="background:rgba(244,63,94,0.1);border-color:rgba(244,63,94,0.3);color:var(--rose)">✕ missing</span>'
+    };
+    return `
+      <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);font-size:11px">
+        <span style="width:110px;color:var(--text3);flex-shrink:0">${escapeHtml(f.label)}</span>
+        ${badgeMap[f.status] || badgeMap.inferred}
+        <span style="color:var(--text2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(f.detail)}</span>
+      </div>`;
+  }).join('');
 
-      btnLogin.disabled    = true;
-      btnLogin.textContent = 'Signing in...';
-      loginErr.textContent = '';
+  // Permit portal direct links
+  const permitNum = l.permit_number || '';
+  const seattleAccelaUrl = permitNum
+    ? `https://cosaccela.seattle.gov/Portal/Cap/CapDetail.aspx?capID1=${encodeURIComponent(permitNum.replace(/-/g,''))}`
+    : `https://cosaccela.seattle.gov/Portal/Cap/CapList.aspx`;
+  const kingCoParcelUrl = `https://blue.kingcounty.com/Assessor/eRealProperty/Detail.aspx?ParcelNbr=&Address=${encodeURIComponent(l.address || '')}`;
+  const seattlePermitSearch = `https://cosaccela.seattle.gov/Portal/Cap/CapList.aspx?Module=DPD&SearchType=Permit&SearchTypeText=Permit%20Number&CapID=${encodeURIComponent(permitNum)}`;
 
-      const result = await switchClient(idx, pw);
+  return `
+    <div class="gc-verify-panel">
+      <div class="gc-verify-header" onclick="toggleGCPanel('${l.id}')">
+        <span style="font-size:16px">🔍</span>
+        <span class="gc-verify-title">GC Verification &amp; Data Sources</span>
+        <span class="gc-verify-status ${gcStatusCls}">${gcStatusLabel}</span>
+        <span style="color:var(--text3);font-size:11px;margin-left:6px">▼</span>
+      </div>
+      <div class="gc-verify-body" id="gcVerifyBody_${l.id}">
 
-      btnLogin.disabled    = false;
-      btnLogin.textContent = 'Sign In';
+        <!-- Confidence Score -->
+        <div class="confidence-bar-wrap">
+          <div class="confidence-label">
+            <span>Data Confidence Score</span>
+            <span style="color:${conf.score >= 70 ? 'var(--green)' : conf.score >= 45 ? 'var(--warm)' : 'var(--hot)'}">${conf.score}/100 · ${confLabel}</span>
+          </div>
+          <div class="confidence-bar">
+            <div class="confidence-fill ${confClass}" style="width:${conf.score}%"></div>
+          </div>
+          <div style="font-size:10px;color:var(--text3);margin-top:5px">
+            ${conf.score >= 70
+              ? '✓ Lead is data-rich — ready to deliver to client.'
+              : conf.score >= 45
+                ? '⚡ Partial data — verify GC status and owner contact before handoff.'
+                : '⚠ Low confidence — enrich this lead before selling.'}
+          </div>
+        </div>
 
-      if (result && result.error) {
-        loginErr.textContent = result.error.message;
-        return;
+        <!-- Field breakdown -->
+        <div style="margin:12px 0 8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3)">Data Field Audit</div>
+        ${fieldsHtml}
+
+        <!-- GC Sources checked -->
+        <div style="margin:14px 0 8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3)">Sources Checked for GC Status</div>
+        ${sourcesHtml}
+
+        <!-- Actions -->
+        <div class="gc-verify-actions">
+          <button class="gc-btn primary" id="gcVerifyBtn_${l.id}" onclick="verifyGCStatus('${l.id}')">
+            🔍 Verify GC Status
+          </button>
+          <a class="gc-btn" target="_blank" href="${seattleAccelaUrl}">↗ Seattle Accela Portal</a>
+          <a class="gc-btn" target="_blank" href="${seattlePermitSearch}">↗ Permit # Search</a>
+          <a class="gc-btn" target="_blank" href="${kingCoParcelUrl}">🏠 Parcel Lookup</a>
+        </div>
+
+        ${l.gc_verified_ts ? `<div style="font-size:10px;color:var(--text3);margin-top:10px;font-family:'JetBrains Mono',monospace">
+          Last verified: ${new Date(l.gc_verified_ts).toLocaleString('en-US')} · Source: ${escapeHtml(l.gc_verified_source || 'unknown')}
+        </div>` : ''}
+      </div>
+    </div>`;
+}
+
+// Verify GC status by checking Seattle Open Data API for contractor field
+async function verifyGCStatus(id) {
+  const l = LEADS.find(x => x.id === id);
+  if (!l) return;
+
+  const btn = document.getElementById('gcVerifyBtn_' + id);
+  if (btn) {
+    btn.innerHTML = '<span class="gc-spinner"></span> Checking...';
+    btn.disabled = true;
+  }
+
+  const permitNum = l.permit_number || '';
+  const sources = [];
+  let gcFound = null;
+  let gcNone = false;
+
+  // ── Source 1: Seattle Open Data API (Socrata) — lookup by permit number ──
+  try {
+    if (permitNum && l.source === 'seattle_dci') {
+      const cleanNum = permitNum.replace(/-CN$/, '').replace(/-/g, '');
+      const url = `https://data.seattle.gov/resource/76t5-zqzr.json?permitnum=${encodeURIComponent(cleanNum)}&$limit=5`;
+      const r = await fetchDirect(url, { headers: { Accept: 'application/json' } });
+      const rows = await r.json();
+      if (Array.isArray(rows) && rows.length > 0) {
+        const p = rows[0];
+        const gc = p.contractorcompanyname || '';
+        const status = p.statuscurrent || '';
+        const issued = p.issueddate || '';
+        sources.push({
+          name: 'Seattle Open Data — Building Permits (data.seattle.gov)',
+          type: 'portal',
+          checked: true,
+          gc_found: gc || null,
+          detail: `Status: ${status}${issued ? ' · Issued: ' + issued.slice(0,10) : ''}`,
+          ts: Date.now()
+        });
+        if (gc) gcFound = gc;
+        else gcNone = true;
+      } else {
+        sources.push({
+          name: 'Seattle Open Data — Building Permits',
+          type: 'portal',
+          checked: true,
+          gc_found: null,
+          detail: 'Permit not found in dataset (may be too new or non-Seattle)',
+          ts: Date.now()
+        });
       }
-
-      if (clientSelect) clientSelect.value = idx;
-      showApp();
-      checkActorHealth();
     }
-
-    btnLogin.addEventListener('click', doLogin);
-    pwInput.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
-
-    // ── In-app client switcher ─────────────────────────────────────────────
-    if (clientSelect) {
-      clientSelect.addEventListener('change', async function () {
-        const q = getQueue();
-        if (q.length > 0) {
-          const ok = confirm(
-            `You have ${q.length} unsaved change(s) queued for the current client.\n\nSwitch anyway? The queue will be synced first if possible, then discarded if offline.`
-          );
-          if (!ok) {
-            const curIdx = CFG.CLIENTS.findIndex(c => c.email === (activeClient || {}).email);
-            clientSelect.value = curIdx >= 0 ? curIdx : 0;
-            return;
-          }
-        }
-
-        const idx = parseInt(clientSelect.value, 10);
-        showBanner('Switching client...', 'syncing');
-        const result = await switchClient(idx);
-        if (result && result.error) {
-          showBanner(`Switch failed: ${result.error.message}`, 'offline');
-        }
-      });
-    }
-
-    // ── Top bar buttons ───────────────────────────────────────────────────
-    document.getElementById('btn-logout').addEventListener('click', async function () {
-      const q = getQueue();
-      if (q.length > 0) {
-        const ok = confirm(`You have ${q.length} queued change(s) that have not synced. Sign out anyway?`);
-        if (!ok) return;
-      }
-      await sb.auth.signOut();
-      leads = [];
-      enrichmentMap = {};
-      clearInterval(syncTimer);
-      showLogin();
+  } catch(e) {
+    sources.push({
+      name: 'Seattle Open Data — Building Permits',
+      type: 'portal',
+      checked: false,
+      gc_found: null,
+      detail: `Error: ${e.message || 'fetch failed'}`,
+      ts: Date.now()
     });
+  }
 
-    document.getElementById('btn-sync').addEventListener('click', sync);
-
-    // ── Bulk Enrich ───────────────────────────────────────────────────────
-    document.getElementById('btn-bulk-enrich').addEventListener('click', () => App.bulkEnrich());
-
-    // ── Lead form submit ──────────────────────────────────────────────────
-    document.getElementById('btn-save-form').addEventListener('click', async function () {
-      const name = document.getElementById('f-name').value.trim();
-      if (!name) {
-        document.getElementById('f-name').focus();
-        document.getElementById('f-name').style.borderColor = 'var(--color-danger)';
-        setTimeout(() => document.getElementById('f-name').style.borderColor = '', 1500);
-        return;
-      }
-
-      this.disabled    = true;
-      this.textContent = 'Saving...';
-
-      const clientId = await getClientId();
-      const lead = {
-        id:            editingId || uuid(),
-        name:          name,
-        company:       document.getElementById('f-company').value.trim(),
-        email:         document.getElementById('f-email').value.trim(),
-        phone:         document.getElementById('f-phone').value.trim(),
-        status:        document.getElementById('f-status').value,
-        source:        document.getElementById('f-source').value.trim(),
-        permit_number: document.getElementById('f-permit').value.trim() || null,
-        jurisdiction:  document.getElementById('f-jurisdiction').value || 'seattle',
-        notes:         document.getElementById('f-notes').value.trim(),
-        client_id:     clientId || (activeClient ? activeClient.email : ''),
-        updated_at:    new Date().toISOString()
-      };
-
-      await saveLead(lead);
-
-      this.disabled    = false;
-      this.textContent = editingId
-        ? (appState === 'OFFLINE' ? 'Update Lead (queued)' : 'Update Lead')
-        : (appState === 'OFFLINE' ? 'Add Lead (queued)'    : 'Add Lead');
-
-      clearForm();
-    });
-
-    document.getElementById('btn-cancel-form').addEventListener('click', clearForm);
-
-    // ── Search / filter ───────────────────────────────────────────────────
-    document.getElementById('search-input').addEventListener('input',   render);
-    document.getElementById('filter-status').addEventListener('change', render);
-
-    // ── Sortable columns ──────────────────────────────────────────────────
-    document.querySelectorAll('thead th[data-sort]').forEach(th => {
-      th.addEventListener('click', function () {
-        const key = this.dataset.sort;
-        if (sortKey === key) sortDir *= -1; else { sortKey = key; sortDir = -1; }
-        document.querySelectorAll('thead th').forEach(t => t.style.color = '');
-        this.style.color = 'var(--color-accent)';
-        render();
-      });
-    });
-
-    // ── Export ────────────────────────────────────────────────────────────
-    document.getElementById('btn-export').addEventListener('click', exportCSV);
-
-    // ── Confirm dialog ────────────────────────────────────────────────────
-    document.getElementById('btn-confirm-ok').addEventListener('click', function () {
-      document.getElementById('confirm-overlay').classList.remove('show');
-      if (confirmCb) { confirmCb(); confirmCb = null; }
-    });
-
-    document.getElementById('btn-confirm-cancel').addEventListener('click', function () {
-      document.getElementById('confirm-overlay').classList.remove('show');
-      confirmCb = null;
-    });
-
-    document.getElementById('confirm-overlay').addEventListener('click', function (e) {
-      if (e.target === this) {
-        this.classList.remove('show');
-        confirmCb = null;
-      }
-    });
+  // ── Source 2: Seattle Accela portal (direct link for manual verification) ──
+  // We can't scrape Accela due to CORS, so we add it as a manual source
+  // with the direct deep-link so the user can verify in one click.
+  const accelaUrl = permitNum
+    ? `https://cosaccela.seattle.gov/Portal/Cap/CapDetail.aspx?capID1=${encodeURIComponent(permitNum.replace(/-/g,'').replace(/CN$/,''))}`
+    : null;
+  sources.push({
+    name: 'Seattle Accela Portal (cosaccela.seattle.gov)',
+    type: 'accela',
+    checked: false,
+    gc_found: null,
+    detail: accelaUrl
+      ? `Direct permit link available — click "↗ Seattle Accela Portal" above to verify GC in the official documents section`
+      : 'No permit number — search by address in Accela',
+    ts: Date.now()
   });
 
-  // ── Screen transitions ────────────────────────────────────────────────────
-  function showLogin() {
-    document.getElementById('login-screen').style.display = '';
-    document.getElementById('app-screen').style.display   = 'none';
-    document.getElementById('login-password').value       = '';
-    document.getElementById('login-error').textContent    = '';
+  // ── Source 3: King County Parcel API (owner of record) ──
+  // data.kingcounty.gov parcel data for owner info via address
+  try {
+    const addr = (l.address || '').split(',')[0].trim();
+    if (addr && l.county === 'KING') {
+      const url = `https://data.kingcounty.gov/resource/d8uk-wnkv.json?$where=upper(addr_full) like upper('%25${encodeURIComponent(addr.split(' ').slice(0,3).join(' '))}%25')&$limit=3`;
+      const r = await fetchDirect(url, { headers: { Accept: 'application/json' } });
+      const rows = await r.json();
+      if (Array.isArray(rows) && rows.length > 0) {
+        const parcel = rows[0];
+        const owner = parcel.taxpayer_name || parcel.owner_name || '';
+        sources.push({
+          name: 'King County Parcel Data (data.kingcounty.gov)',
+          type: 'parcel',
+          checked: true,
+          gc_found: null,
+          detail: owner ? `Owner of record: ${owner}` : 'Parcel found — no owner returned',
+          ts: Date.now()
+        });
+        // Update owner if we got one and don't have one yet
+        if (owner && !l.owner_name) {
+          l.owner_name = owner;
+        }
+      } else {
+        sources.push({
+          name: 'King County Parcel Data',
+          type: 'parcel',
+          checked: true,
+          gc_found: null,
+          detail: 'Address not matched in parcel dataset',
+          ts: Date.now()
+        });
+      }
+    }
+  } catch(e) {
+    sources.push({
+      name: 'King County Parcel Data',
+      type: 'parcel',
+      checked: false,
+      gc_found: null,
+      detail: `Error: ${e.message || 'fetch failed'}`,
+      ts: Date.now()
+    });
   }
 
-  function showApp() {
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('app-screen').style.display   = 'flex';
+  // ── Write results back to lead ──
+  l.gc_sources = sources;
+  l.gc_verified_ts = Date.now();
+  l.gc_verified_source = 'Seattle Open Data + KC Parcel';
+  if (gcFound) {
+    l.gc_verified_none = false;
+    l.gc_verified_name = gcFound;
+    l.contractor_name = gcFound; // update the main field
+    l.no_gc = false;
+  } else if (gcNone) {
+    l.gc_verified_none = true;
+    l.gc_verified_name = null;
+    l.no_gc = true;
   }
 
-})();
+  scoreLead(l);
+  save();
+  renderDrawer(l);
+  rerender();
+
+  // Re-open the panel after re-render
+  setTimeout(() => {
+    const body = document.getElementById('gcVerifyBody_' + id);
+    if (body) body.classList.add('open');
+  }, 50);
+}
+
+function saveNotes(id, val) {
+  const l = LEADS.find(x => x.id === id);
+  if (!l) return;
+  l.notes = val;
+  save();
+}
+
+function setState(id, state) {
+  const l = LEADS.find(x => x.id === id);
+  if (!l) return;
+  l.state = state;
+  l.timeline = l.timeline || [];
+  l.timeline.push({ ts: Date.now(), state });
+  save();
+  renderDrawer(l);
+  rerender();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// BRIEF GENERATION — the deliverable for Tim & Ashley
+// ═══════════════════════════════════════════════════════════════════════════
+function generateBrief(l) {
+  const lines = [];
+  const catLabel = l.category ? l.category.label : 'Construction project';
+  const stageLabel = l.stage ? (STAGE_LABELS[l.stage]?.label || l.stage) : 'Unknown';
+  const conf = computeConfidence(l);
+
+  lines.push(`═══════════════════════════════════════════════════════`);
+  lines.push(`  DECISION-MAKER BRIEF · For Envision Builders LLC`);
+  lines.push(`  Prepared by Alkan Construction Assistant`);
+  lines.push(`  Data Confidence: ${conf.score}/100 · ${conf.score >= 70 ? 'HIGH' : conf.score >= 45 ? 'MEDIUM' : 'LOW'}`);
+  lines.push(`═══════════════════════════════════════════════════════`);
+  lines.push(``);
+  lines.push(`PROJECT`);
+  lines.push(`  ${l.title || '(untitled)'}`);
+  lines.push(`  Category: ${catLabel}${l.unit_count ? ` · ${l.unit_count} units` : ''}`);
+  lines.push(`  Address: ${l.address || '—'}, ${l.city || ''} ${l.zip || ''}`);
+  lines.push(`  County: ${l.county || '—'}`);
+  lines.push(`  Estimated Value: ${fmtMoney(l.value)}`);
+  lines.push(``);
+  lines.push(`PERMIT STATUS`);
+  lines.push(`  Stage: ${stageLabel}`);
+  lines.push(`  Permit #: ${l.permit_number || '—'}`);
+  lines.push(`  Raw status: ${l.permit_status_raw || '—'}`);
+  lines.push(`  Applied: ${l.application_date || '—'}`);
+  lines.push(`  Issued: ${l.issued_date || 'NOT YET ISSUED'}`);
+  lines.push(`  Permit URL: ${l.url || '—'}`);
+  lines.push(``);
+  lines.push(`GC OF RECORD — VERIFIED STATUS`);
+  if (l.gc_verified_ts) {
+    if (l.gc_verified_none) {
+      lines.push(`  ✓ CONFIRMED: No general contractor of record`);
+      lines.push(`  Verified: ${new Date(l.gc_verified_ts).toLocaleString('en-US')}`);
+      lines.push(`  Source: ${l.gc_verified_source || 'Seattle Open Data'}`);
+    } else if (l.gc_verified_name) {
+      lines.push(`  ⚠ GC ON FILE: ${l.gc_verified_name}`);
+      lines.push(`  Verified: ${new Date(l.gc_verified_ts).toLocaleString('en-US')}`);
+      lines.push(`  Note: Verify if this is preconstruction-only or locked GC.`);
+    } else {
+      lines.push(`  ⚡ Inconclusive — manual check of Accela documents recommended`);
+      lines.push(`  Accela: https://cosaccela.seattle.gov`);
+    }
+  } else {
+    lines.push(`  ⚠ NOT VERIFIED — from permit dataset field only`);
+    lines.push(`  ${l.contractor_name || 'No contractor listed in dataset'}`);
+    lines.push(`  Recommend: run GC Verification in Lead Hunter before handoff`);
+  }
+  lines.push(``);
+  lines.push(`DECISION-MAKERS`);
+  lines.push(`  Owner: ${l.owner_name || '⚠ NEEDS LOOKUP'}`);
+  lines.push(`  Phone: ${l.owner_phone || '⚠ NEEDS LOOKUP'}`);
+  lines.push(`  Email: ${l.owner_email || '⚠ NEEDS LOOKUP'}`);
+  lines.push(`  Architect: ${l.architect_name || '⚠ NEEDS LOOKUP'}`);
+  lines.push(`  Owner's Rep: ${l.owners_rep || '—'}`);
+  lines.push(``);
+  lines.push(`WHY THIS LEAD`);
+  (l.why_relevant || []).forEach(w => lines.push(`  • ${w}`));
+  lines.push(``);
+  lines.push(`DATA SOURCES`);
+  lines.push(`  Primary: ${l.source_label || l.source} — ${l.url || '—'}`);
+  if (l.gc_sources && l.gc_sources.length > 0) {
+    l.gc_sources.forEach(s => {
+      if (s.checked) {
+        lines.push(`  GC check: ${s.name}${s.gc_found ? ' → GC: ' + s.gc_found : ' → No GC found'}`);
+      }
+    });
+  }
+  lines.push(`  Captured: ${new Date(l.captured_ts || Date.now()).toLocaleDateString('en-US')}`);
+  lines.push(``);
+  lines.push(`RECOMMENDED ACTION`);
+  if (l.no_gc && l.fully_enriched) {
+    lines.push(`  → Direct email to owner offering to bid. Pre-permit window is open.`);
+    lines.push(`  → Cc architect if listed. Reference permit # in subject line.`);
+  } else if (l.no_gc && !l.fully_enriched) {
+    lines.push(`  → Enrich owner contact (King Co Parcel, LinkedIn, Google).`);
+    lines.push(`  → Then email owner. Reference permit # to demonstrate legitimacy.`);
+  } else if (!l.no_gc) {
+    lines.push(`  → Verify if listed contractor is GC or preconstruction-only.`);
+    lines.push(`  → If preconstruction only, owner may still entertain other bids.`);
+  }
+  lines.push(``);
+  lines.push(`Confidence score: ${conf.score}/100. For questions: alkanassistant@gmail.com · +1 206 640 6034`);
+
+  return lines.join('\n');
+}
+
+function copyBrief(id) {
+  const l = LEADS.find(x => x.id === id);
+  if (!l) return;
+  const text = generateBrief(l);
+  navigator.clipboard.writeText(text).then(() => {
+    alert('Brief copied to clipboard. Paste into email to Tim/Ashley.');
+  });
+}
+
+function generateEmail(id, recipient) {
+  const l = LEADS.find(x => x.id === id);
+  if (!l) return;
+  let subject, body;
+  if (recipient === 'tim') {
+    subject = `New opportunity for Envision Builders — ${l.category ? l.category.label : 'Project'} ${l.address || ''}`;
+    body = `Tim,\n\nNew opportunity worth your review. Snapshot:\n\n` +
+      `• ${l.title}\n` +
+      `• ${l.category ? l.category.label : 'Project'}${l.unit_count ? ' · ' + l.unit_count + ' units' : ''}\n` +
+      `• Address: ${l.address || '—'}, ${l.city || ''}\n` +
+      `• Estimated value: ${fmtMoney(l.value)}\n` +
+      `• Permit stage: ${l.stage ? (STAGE_LABELS[l.stage]?.label || l.stage) : 'Unknown'}\n` +
+      `• GC of record: ${l.no_gc ? 'None — slot open' : l.contractor_name}\n\n` +
+      `Owner: ${l.owner_name || 'enrichment in progress'}\n` +
+      `Owner contact: ${l.owner_phone || l.owner_email || 'enrichment in progress'}\n` +
+      `Architect: ${l.architect_name || '—'}\n\n` +
+      `Full decision-maker brief and permit link in our shared pipeline.\n\n` +
+      `Andres / Alkan Construction Assistant`;
+  } else {
+    // Owner email
+    subject = `${l.category ? l.category.label : 'Construction'} project at ${l.address || ''} — interested in bidding`;
+    body = `Hello${l.owner_name ? ' ' + l.owner_name.split(' ')[0] : ''},\n\n` +
+      `I'm reaching out on behalf of Envision Builders LLC, a licensed and bonded general contractor based in Bonney Lake, WA (license ENVISBI752MC, UBI 605 908 777).\n\n` +
+      `We noticed your ${l.category ? l.category.label.toLowerCase() : 'project'} permit at ${l.address || ''}${l.permit_number ? ' (permit #' + l.permit_number + ')' : ''} and would welcome the opportunity to submit a proposal.\n\n` +
+      `Envision Builders specializes in:\n` +
+      `  • Multifamily (5–30 units)\n  • SFR / ADU / DADU new construction\n  • Commercial TI and new build\n  • Townhome developments\n\n` +
+      `We operate as a managing GC with structured preconstruction planning, coordinated subcontractor procurement, and a clean 6-year L&I record with zero violations.\n\n` +
+      `Would you have 15 minutes this week to discuss your project? Happy to provide references and a preliminary review at no obligation.\n\n` +
+      `Best regards,\n` +
+      `Tim Kairez, President\n` +
+      `Envision Builders LLC · 425.757.4591 · tim@envision-builds.com`;
+  }
+  const mailto = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  window.open(mailto);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// EXPORTS & REPORTS
+// ═══════════════════════════════════════════════════════════════════════════
+function exportPipelineCSV() {
+  const arr = LEADS.filter(l => l.state !== 'new' && !l.is_excluded);
+  const headers = ['Title','Category','Units','Address','City','County','Value','Stage','Permit #','Owner','Phone','Email','Architect','GC of Record','State','Score'];
+  const rows = arr.map(l => [
+    l.title, l.category?.label || '', l.unit_count || '',
+    l.address, l.city, l.county, l.value || '',
+    l.stage, l.permit_number, l.owner_name, l.owner_phone, l.owner_email,
+    l.architect_name, l.contractor_name || 'None', l.state, l.score
+  ]);
+  const csv = [headers.join(','), ...rows.map(r => r.map(c => `"${String(c||'').replace(/"/g,'""')}"`).join(','))].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `envision_builders_pipeline_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+}
+
+function exportPipelineForAshley() {
+  // A nicer weekly brief for Ashley (BD lead)
+  const handoffs = LEADS.filter(l => l.state === 'handoff' || l.ready_for_handoff);
+  const inProgress = LEADS.filter(l => ['contacted','qualified'].includes(l.state));
+  const won = LEADS.filter(l => l.state === 'won');
+
+  const lines = [];
+  lines.push(`WEEKLY PIPELINE BRIEF — ENVISION BUILDERS LLC`);
+  lines.push(`Prepared by Alkan Construction Assistant`);
+  lines.push(`Week of ${new Date().toLocaleDateString('en-US', { month:'long', day:'numeric', year:'numeric' })}`);
+  lines.push('═'.repeat(60));
+  lines.push('');
+  lines.push(`SUMMARY`);
+  lines.push(`  Opportunities sourced this week:   ${LEADS.filter(l => Date.now() - l.captured_ts < 7*86400000).length}`);
+  lines.push(`  In active conversation:            ${inProgress.length}`);
+  lines.push(`  Ready for Tim's review (handoff):  ${handoffs.length}`);
+  lines.push(`  Contracts won (lifetime):          ${won.length}`);
+  lines.push('');
+  lines.push(`READY FOR REVIEW`);
+  lines.push('');
+  handoffs.slice(0, 8).forEach((l, i) => {
+    lines.push(`  ${i+1}. ${l.title}`);
+    lines.push(`     ${l.category?.label || ''} · ${fmtMoney(l.value)} · ${l.address || ''}`);
+    lines.push(`     Owner: ${l.owner_name || 'TBD'} · ${l.owner_phone || l.owner_email || 'contact pending'}`);
+    lines.push(`     Stage: ${STAGE_LABELS[l.stage]?.label || l.stage} · GC: ${l.no_gc ? 'NONE' : l.contractor_name}`);
+    lines.push('');
+  });
+  lines.push(`IN ACTIVE CONVERSATION`);
+  lines.push('');
+  inProgress.slice(0, 8).forEach((l, i) => {
+    lines.push(`  ${i+1}. ${l.title} — ${LEAD_STATES[l.state]?.label || l.state}`);
+    lines.push(`     ${l.address || ''} · ${fmtMoney(l.value)}`);
+    lines.push('');
+  });
+  lines.push('');
+  lines.push(`— Andres / Alkan Construction Assistant`);
+  lines.push(`alkanassistant@gmail.com · +1 206 640 6034`);
+
+  const text = lines.join('\n');
+  navigator.clipboard.writeText(text).then(() => {
+    alert('Weekly brief copied to clipboard. Paste into email to Tim & Ashley.');
+  });
+}
+
+function copyAllHandoffBriefs() {
+  const arr = LEADS.filter(l => l.ready_for_handoff || l.state === 'handoff');
+  if (!arr.length) {
+    alert('No handoff-ready briefs yet.');
+    return;
+  }
+  const text = arr.map(generateBrief).join('\n\n\n');
+  navigator.clipboard.writeText(text).then(() => {
+    alert(`${arr.length} briefs copied to clipboard.`);
+  });
+}
+
+function renderReport() {
+  const c = document.getElementById('reportContent');
+  const weekStart = Date.now() - 7*86400000;
+  const newThisWeek = LEADS.filter(l => l.captured_ts >= weekStart);
+  const byCategory = {};
+  for (const l of LEADS) {
+    if (!l.category) continue;
+    const code = l.category.code;
+    byCategory[code] = byCategory[code] || { label: l.category.label, count: 0, value: 0 };
+    byCategory[code].count++;
+    byCategory[code].value += (l.value || 0);
+  }
+  const byStage = {};
+  for (const l of LEADS) {
+    byStage[l.stage] = (byStage[l.stage] || 0) + 1;
+  }
+  const handoffs = LEADS.filter(l => l.state === 'handoff' || l.ready_for_handoff);
+  const won = LEADS.filter(l => l.state === 'won');
+
+  c.innerHTML = `
+    <div class="drawer-section">
+      <div class="drawer-section-title">SUMMARY · Week of ${new Date().toLocaleDateString('en-US', { month:'long', day:'numeric', year:'numeric' })}</div>
+      <div class="dr-field"><span class="dr-field-label">Total opportunities tracked</span><span class="dr-field-value">${LEADS.length}</span></div>
+      <div class="dr-field"><span class="dr-field-label">New this week</span><span class="dr-field-value">${newThisWeek.length}</span></div>
+      <div class="dr-field"><span class="dr-field-label">Pre-permit / under review</span><span class="dr-field-value">${LEADS.filter(l => ['application','intake','review','correction','pre_issuance'].includes(l.stage)).length}</span></div>
+      <div class="dr-field"><span class="dr-field-label">No GC of record</span><span class="dr-field-value">${LEADS.filter(l => l.no_gc).length}</span></div>
+      <div class="dr-field"><span class="dr-field-label">Fully enriched (owner + contact)</span><span class="dr-field-value">${LEADS.filter(l => l.fully_enriched).length}</span></div>
+      <div class="dr-field"><span class="dr-field-label">Ready for Tim's review</span><span class="dr-field-value">${handoffs.length}</span></div>
+      <div class="dr-field"><span class="dr-field-label">Contracts won (lifetime)</span><span class="dr-field-value">${won.length}</span></div>
+    </div>
+
+    <div class="drawer-section">
+      <div class="drawer-section-title">BY CATEGORY</div>
+      ${Object.values(byCategory).map(c => `
+        <div class="dr-field">
+          <span class="dr-field-label">${escapeHtml(c.label)}</span>
+          <span class="dr-field-value">${c.count} opportunities · ${fmtMoney(c.value)} total value</span>
+        </div>
+      `).join('')}
+    </div>
+
+    <div class="drawer-section">
+      <div class="drawer-section-title">BY PERMIT STAGE</div>
+      ${Object.entries(byStage).map(([stage, count]) => `
+        <div class="dr-field">
+          <span class="dr-field-label">${escapeHtml(STAGE_LABELS[stage]?.label || stage)}</span>
+          <span class="dr-field-value">${count}</span>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function copyReportText() {
+  const weekStart = Date.now() - 7*86400000;
+  const newThisWeek = LEADS.filter(l => l.captured_ts >= weekStart);
+  const handoffs = LEADS.filter(l => l.state === 'handoff' || l.ready_for_handoff);
+  const lines = [
+    `WEEKLY PIPELINE REPORT — ENVISION BUILDERS LLC`,
+    `Week of ${new Date().toLocaleDateString('en-US', { month:'long', day:'numeric', year:'numeric' })}`,
+    `Prepared by Alkan Construction Assistant`,
+    '═'.repeat(60),
+    '',
+    `Opportunities tracked:        ${LEADS.length}`,
+    `New this week:                ${newThisWeek.length}`,
+    `Pre-permit / under review:    ${LEADS.filter(l => ['application','intake','review','correction','pre_issuance'].includes(l.stage)).length}`,
+    `No GC of record:              ${LEADS.filter(l => l.no_gc).length}`,
+    `Owner contact verified:       ${LEADS.filter(l => l.fully_enriched).length}`,
+    `Ready for Tim's review:       ${handoffs.length}`,
+    '',
+    `— Andres / Alkan Construction Assistant`
+  ];
+  navigator.clipboard.writeText(lines.join('\n')).then(() => alert('Report copied.'));
+}
+
+function downloadReportMarkdown() {
+  const md = [
+    `# Weekly Pipeline Report — Envision Builders LLC`,
+    ``,
+    `**Week of:** ${new Date().toLocaleDateString('en-US', { month:'long', day:'numeric', year:'numeric' })}`,
+    `**Prepared by:** Alkan Construction Assistant`,
+    ``,
+    `## Summary`,
+    ``,
+    `- Total opportunities tracked: **${LEADS.length}**`,
+    `- New this week: **${LEADS.filter(l => Date.now() - l.captured_ts < 7*86400000).length}**`,
+    `- Pre-permit / under review: **${LEADS.filter(l => ['application','intake','review','correction','pre_issuance'].includes(l.stage)).length}**`,
+    `- No GC of record: **${LEADS.filter(l => l.no_gc).length}**`,
+    `- Owner contact verified: **${LEADS.filter(l => l.fully_enriched).length}**`,
+    `- Ready for handoff: **${LEADS.filter(l => l.ready_for_handoff || l.state === 'handoff').length}**`,
+    ``,
+    `## Ready for Tim's Review`,
+    ``,
+    ...LEADS.filter(l => l.ready_for_handoff || l.state === 'handoff').map(l =>
+      `- **${l.title}** — ${l.category?.label} · ${fmtMoney(l.value)} · ${l.address}\n  - Owner: ${l.owner_name || 'TBD'} · ${l.owner_phone || l.owner_email || 'pending'}\n  - Stage: ${STAGE_LABELS[l.stage]?.label || l.stage}`
+    )
+  ].join('\n');
+
+  const blob = new Blob([md], { type: 'text/markdown' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `envision_builders_weekly_${new Date().toISOString().slice(0,10)}.md`;
+  a.click();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MAIN RENDER ORCHESTRATION
+// ═══════════════════════════════════════════════════════════════════════════
+function rerender() {
+  renderKPIs();
+  if (CURRENT_VIEW === 'hunt') renderHunt();
+  else if (CURRENT_VIEW === 'pipeline') renderPipeline();
+  else if (CURRENT_VIEW === 'handoffs') renderHandoffs();
+  else if (CURRENT_VIEW === 'report') renderReport();
+}
+
+// Tab switching
+document.querySelectorAll('.tab[data-view]').forEach(t => {
+  t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    CURRENT_VIEW = t.dataset.view;
+    document.getElementById(`view-${CURRENT_VIEW}`).classList.add('active');
+    rerender();
+  });
+});
+
+// Source chip toggles
+document.querySelectorAll('#sourceChips .chip').forEach(c => {
+  c.addEventListener('click', () => {
+    c.classList.toggle('active');
+  });
+});
+
+// Hunt filters
+['huntSearch','huntCatFilter','huntStatusFilter','huntGCFilter','huntCountyFilter','huntValueFilter','huntSortFilter'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener(el.tagName === 'INPUT' ? 'input' : 'change', renderHunt);
+});
+document.getElementById('huntEnrichedToggle').addEventListener('click', e => {
+  e.target.classList.toggle('on');
+  renderHunt();
+});
+
+// Pipeline filters
+['pipeSearch','pipeStateFilter'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener(el.tagName === 'INPUT' ? 'input' : 'change', renderPipeline);
+});
+
+// Close drawer on backdrop click
+document.getElementById('drawer').addEventListener('click', e => {
+  if (e.target.id === 'drawer') closeDrawer();
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DEMO SEED DATA — realistic Tim-style opportunities
+// ═══════════════════════════════════════════════════════════════════════════
+function seedDemoLeads() {
+  if (localStorage.getItem(SEED_KEY) === 'ok') return;
+  const now_ts = Date.now();
+  const demo = [
+    {
+      id: 'demo_001',
+      source: 'seattle_dci', source_label: 'Seattle DCI',
+      title: 'Multifamily — 4218 Rainier Ave S',
+      description: 'Construct new 18-unit multifamily residential building, 4 stories, with 6 surface parking stalls per plan. Mechanical, plumbing, electrical included. Site grading required.',
+      permit_type: 'New', permit_number: '6810234-CN',
+      permit_status_raw: 'Application Accepted — Routing',
+      stage: 'review',
+      category: PROJECT_CATEGORIES.find(c => c.code === 'multifamily'),
+      unit_count: 18,
+      address: '4218 Rainier Ave S', city: 'Seattle', zip: '98118', county: 'KING',
+      value: 4200000,
+      posted_ts: now_ts - 12*86400000,
+      application_date: '2026-05-07', issued_date: null,
+      url: 'https://cosaccela.seattle.gov/Portal/Cap/CapDetail.aspx?capID1=6810234',
+      contractor_name: '',
+      owner_name: 'Rainier Development Partners LLC',
+      owner_phone: '206-555-7841', owner_email: 'projects@rainierdev.com',
+      architect_name: 'Mithun Studio',
+      owners_rep: '',
+      state: 'new', timeline: [], captured_ts: now_ts, notes: ''
+    },
+    {
+      id: 'demo_002',
+      source: 'seattle_dci', source_label: 'Seattle DCI',
+      title: 'Townhomes — 8624 Greenwood Ave N',
+      description: 'Construct 8 attached townhomes (4 buildings of 2 units each), 3-story, individual fee simple lots. Per plan with associated site improvements and utility connections.',
+      permit_type: 'New', permit_number: '6809102-CN',
+      permit_status_raw: 'Intake Review',
+      stage: 'intake',
+      category: PROJECT_CATEGORIES.find(c => c.code === 'townhome'),
+      unit_count: 8,
+      address: '8624 Greenwood Ave N', city: 'Seattle', zip: '98103', county: 'KING',
+      value: 2800000,
+      posted_ts: now_ts - 5*86400000,
+      application_date: '2026-05-14', issued_date: null,
+      contractor_name: '',
+      owner_name: 'Northbound Property Group',
+      owner_phone: '', owner_email: 'dev@northboundpg.com',
+      architect_name: 'Ankrom Moisan',
+      owners_rep: '',
+      state: 'new', timeline: [], captured_ts: now_ts, notes: ''
+    },
+    {
+      id: 'demo_003',
+      source: 'king_county', source_label: 'King County',
+      title: 'SFR new construction — 14502 SE 38th Pl',
+      description: 'Construct new one-family dwelling 4,200 sqft with attached 3-car garage and ADU above garage per plan. Site grading and utility connections included.',
+      permit_type: 'New Residential', permit_number: 'KC-2026-04812',
+      permit_status_raw: 'In Plan Review',
+      stage: 'review',
+      category: PROJECT_CATEGORIES.find(c => c.code === 'sfr'),
+      unit_count: null,
+      address: '14502 SE 38th Pl', city: 'Bellevue', zip: '98006', county: 'KING',
+      value: 1850000,
+      posted_ts: now_ts - 18*86400000,
+      application_date: '2026-05-01', issued_date: null,
+      contractor_name: '',
+      owner_name: 'Chen Family Trust',
+      owner_phone: '', owner_email: '',
+      architect_name: 'Sundberg Kennedy Ly-Au Young Architects',
+      owners_rep: '',
+      state: 'new', timeline: [], captured_ts: now_ts, notes: ''
+    },
+    {
+      id: 'demo_004',
+      source: 'seattle_dci', source_label: 'Seattle DCI',
+      title: 'DADU — 2347 NW 58th St',
+      description: 'Construct detached accessory dwelling unit (DADU) 980 sqft, 2-bedroom, 1.5 bath, single-story over storage per plan with new utility laterals.',
+      permit_type: 'DADU', permit_number: '6811045-CN',
+      permit_status_raw: 'Application Filed',
+      stage: 'application',
+      category: PROJECT_CATEGORIES.find(c => c.code === 'adu'),
+      unit_count: null,
+      address: '2347 NW 58th St', city: 'Seattle', zip: '98107', county: 'KING',
+      value: 285000,
+      posted_ts: now_ts - 3*86400000,
+      application_date: '2026-05-16', issued_date: null,
+      contractor_name: '',
+      owner_name: 'Sarah Whitfield',
+      owner_phone: '206-555-3318', owner_email: 'swhitfield@gmail.com',
+      architect_name: '',
+      owners_rep: '',
+      state: 'new', timeline: [], captured_ts: now_ts, notes: ''
+    },
+    {
+      id: 'demo_005',
+      source: 'seattle_dci', source_label: 'Seattle DCI',
+      title: 'Commercial TI — 1218 4th Ave',
+      description: 'Tenant improvement, 12,400 sqft Class A office space, full demo to shell and rebuild for software tenant. New HVAC, electrical, partitions, ceiling, finishes per plan. No structural alterations.',
+      permit_type: 'Commercial Alteration', permit_number: '6810998-CN',
+      permit_status_raw: 'In Review — Corrections Required',
+      stage: 'correction',
+      category: PROJECT_CATEGORIES.find(c => c.code === 'commercial'),
+      unit_count: null,
+      address: '1218 4th Ave', city: 'Seattle', zip: '98101', county: 'KING',
+      value: 1450000,
+      posted_ts: now_ts - 22*86400000,
+      application_date: '2026-04-27', issued_date: null,
+      contractor_name: '',
+      owner_name: 'Pacific Realty Holdings',
+      owner_phone: '206-555-4901', owner_email: 'leasing@pacrealtyhold.com',
+      architect_name: 'Gensler Seattle',
+      owners_rep: 'JLL · Marcus Henderson',
+      state: 'new', timeline: [], captured_ts: now_ts, notes: ''
+    },
+    {
+      id: 'demo_006',
+      source: 'king_county', source_label: 'King County',
+      title: 'Multifamily — 22118 84th Ave S, Kent',
+      description: 'New 28-unit affordable workforce housing development, 3 stories over slab. LIHTC project. Per plan with associated site improvements.',
+      permit_type: 'New Multifamily', permit_number: 'KC-2026-04901',
+      permit_status_raw: 'Application Accepted',
+      stage: 'intake',
+      category: PROJECT_CATEGORIES.find(c => c.code === 'affordable'),
+      unit_count: 28,
+      address: '22118 84th Ave S', city: 'Kent', zip: '98031', county: 'KING',
+      value: 6800000,
+      posted_ts: now_ts - 8*86400000,
+      application_date: '2026-05-11', issued_date: null,
+      contractor_name: '',
+      owner_name: 'King County Housing Authority',
+      owner_phone: '206-574-1100', owner_email: 'development@kcha.org',
+      architect_name: 'SMR Architects',
+      owners_rep: '',
+      state: 'new', timeline: [], captured_ts: now_ts, notes: ''
+    },
+    {
+      id: 'demo_007',
+      source: 'seattle_dci', source_label: 'Seattle DCI',
+      title: 'SFR new construction — 3812 W Crockett St',
+      description: 'Demolish existing single-family residence and construct new one-family dwelling, 3,800 sqft, 4 bed / 3.5 bath, basement, attached 2-car garage per plan.',
+      permit_type: 'New Residential', permit_number: '6811302-CN',
+      permit_status_raw: 'Issued',
+      stage: 'issued_lt_14d',
+      category: PROJECT_CATEGORIES.find(c => c.code === 'sfr'),
+      unit_count: null,
+      address: '3812 W Crockett St', city: 'Seattle', zip: '98199', county: 'KING',
+      value: 1200000,
+      posted_ts: now_ts - 8*86400000,
+      application_date: '2026-02-12', issued_date: '2026-05-11',
+      contractor_name: 'Holmberg Mechanical Inc',
+      owner_name: 'Daniel Park',
+      owner_phone: '', owner_email: '',
+      architect_name: '',
+      owners_rep: '',
+      state: 'new', timeline: [], captured_ts: now_ts, notes: ''
+    },
+    {
+      id: 'demo_008',
+      source: 'king_county', source_label: 'King County',
+      title: 'Multifamily — 5512 NE 80th, Bothell',
+      description: 'New 22-unit apartment building, 3-story over surface parking, with associated site work, utilities, and stormwater facility per approved plans.',
+      permit_type: 'New Multifamily', permit_number: 'KC-2026-04733',
+      permit_status_raw: 'In Plan Review',
+      stage: 'review',
+      category: PROJECT_CATEGORIES.find(c => c.code === 'multifamily'),
+      unit_count: 22,
+      address: '5512 NE 80th', city: 'Bothell', zip: '98011', county: 'KING',
+      value: 5400000,
+      posted_ts: now_ts - 25*86400000,
+      application_date: '2026-04-24', issued_date: null,
+      contractor_name: '',
+      owner_name: '',
+      owner_phone: '', owner_email: '',
+      architect_name: '',
+      owners_rep: '',
+      state: 'new', timeline: [], captured_ts: now_ts, notes: ''
+    }
+  ];
+  demo.forEach(l => { scoreLead(l); LEADS.push(l); });
+  localStorage.setItem(SEED_KEY, 'ok');
+  save();
+  rerender();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════════════════
+load().then(() => {
+  if (!LEADS.length && !localStorage.getItem(SEED_KEY)) {
+    seedDemoLeads();
+  }
+  rerender();
+});
+
+// Auto-dismiss persistence advisory if previously dismissed
+if (localStorage.getItem('pa_dismissed') === '1') {
+  const pa = document.getElementById('persistenceAdvisory');
+  if (pa) pa.classList.add('hidden');
+}
+
 </script>
+
+<footer class="alkan-footer">
+  <div class="alkan-footer-inner">
+    <div>
+      <div class="alkan-footer-logo">Alkan <span class="blue">Lead</span> <span class="gold">Hunter</span> · v11-EB</div>
+      <div class="alkan-footer-by">Envision Builders Edition · Built by <b>Andres Alkan</b></div>
+    </div>
+    <div>
+      <div class="alkan-footer-contact">
+        <a href="mailto:alkanassistant@gmail.com">alkanassistant@gmail.com</a>
+        <span>·</span>
+        <a href="tel:+12066406034">+1 206 640 6034</a>
+      </div>
+      <div class="alkan-footer-copy">© Andres Alkan · Serving King · Pierce · Snohomish · Kitsap WA</div>
+      <div class="alkan-footer-tech">Pre-permit intelligence · No PW (except affordable) · Owner-first enrichment</div>
+    </div>
+  </div>
+</footer>
 </body>
 </html>
