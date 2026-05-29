@@ -33,6 +33,12 @@
   const SUPABASE_URL = 'https://qyesctuksvtblegkinrj.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF5ZXNjdHVrc3Z0YmxlZ2tpbnJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2NzU5NzEsImV4cCI6MjA5NTI1MTk3MX0.ENr_6um5ob3COrgiJrI67EAetch8Yutf_by7FY1gDMM';
   const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // ── Actor config (alkan-actor on Render) ─────────────────────────────────
+  // Set ACTOR_URL to your Render service URL, e.g. https://alkan-actor.onrender.com
+  // Set ACTOR_API_KEY to the API_KEY env var you set in Render dashboard
+  const ACTOR_URL     = 'https://alkan-actor.onrender.com';
+  const ACTOR_API_KEY = 'changeme'; // ← UPDATE THIS in Render env vars
 </script>
 <style>
 :root {
@@ -1896,101 +1902,159 @@ function logStatus(msg, state) {
   }
 }
 
-// Seattle DCI — focusing on APPLICATIONS and IN-REVIEW, not just issued
-// Dataset: data.seattle.gov/resource/76t5-zqzr.json (Building Permits, active 2026)
-// IMPORTANT: this dataset uses SMASHED LOWERCASE field names (no underscores).
-// Verified live field names:
-//   permitnum, permitclass, permitclassmapped, permittypemapped, permittypedesc,
-//   description, housingunits, housingunitsadded, estprojectcost,
-//   applieddate, issueddate, statuscurrent, originaladdress1, originalcity,
-//   originalzip, contractorcompanyname, link ({url: '...'})
+// ── Actor helper — normalize one permit from /hunt response into a lead ───────
+function actorPermitToLead(p) {
+  const catCode = p.category;
+  const category = catCode ? (PROJECT_CATEGORIES.find(c => c.code === catCode) || { code: catCode, label: catCode }) : null;
+  if (!category) return null;
+  const fullText = `${p.description || ''} ${p.permit_type || ''}`;
+  if (isExcluded(fullText)) return null;
+
+  const lead = {
+    id: `${p.jurisdiction || 'sea'}_${p.permit_number || uid()}`,
+    source: p.source || 'actor',
+    source_label: p.jurisdiction === 'snohomish' ? 'Snohomish County' : 'Seattle DCI',
+    title: `${category.label} — ${(p.address || '').slice(0, 60)}`,
+    description: (p.description || '').slice(0, 800),
+    permit_type: p.permit_type || '',
+    permit_number: p.permit_number,
+    permit_status_raw: p.status || '',
+    stage: classifyStage(p.status, p.issue_date),
+    category,
+    unit_count: extractUnitCount(fullText),
+    address: p.address || '',
+    city: p.jurisdiction === 'snohomish' ? 'Snohomish County' : 'Seattle',
+    zip: p.zip || '',
+    county: p.county || 'KING',
+    value: p.valuation || null,
+    posted_ts: p.application_date ? new Date(p.application_date).getTime()
+             : p.issue_date       ? new Date(p.issue_date).getTime()
+             : Date.now(),
+    issued_date: p.issue_date || null,
+    application_date: p.application_date || null,
+    url: p.permit_number
+      ? `https://cosaccela.seattle.gov/Portal/Cap/CapDetail.aspx?Module=DPD&capID1=${p.permit_number}`
+      : '',
+    contractor_name: p.contractor || '',
+    no_gc: p.no_gc ?? !p.contractor,
+    gc_license_url: p.gc_license_url || null,
+    owner_name:    p.owner_name  || '',
+    owner_phone:   p.owner_phone || '',
+    owner_email:   p.owner_email || '',
+    architect_name: '',
+    owners_rep: '',
+    state: 'new',
+    timeline: [],
+    captured_ts: now(),
+    notes: '',
+    // Actor scoring fields (if enriched)
+    actor_score: p.scoring?.score ?? null,
+    actor_urgency: p.scoring?.urgency ?? null,
+    actor_summary: p.scoring?.executive_summary ?? null,
+    actor_outreach_subject: p.scoring?.outreach_subject ?? null,
+    actor_outreach_draft:   p.scoring?.outreach_draft   ?? null,
+    fully_enriched: !!(p.owner_phone || p.owner_email),
+  };
+  scoreLead(lead);
+  return lead;
+}
+
+// Seattle DCI — calls actor /hunt endpoint (primary), falls back to direct Open Data API
 async function scrapeSeattleDCI() {
   const out = [];
   let rawCount = 0;
-  let proxyUsed = '';
   let categoryMatches = 0;
   let exclusionDrops = 0;
+
+  // ── Try actor first ──────────────────────────────────────────────────────
+  if (ACTOR_URL && ACTOR_API_KEY && ACTOR_API_KEY !== 'changeme') {
+    try {
+      logStatus('Seattle DCI · connecting to actor (Render)...', 'running');
+      const actorEndpoint = `${ACTOR_URL}/hunt?days=180&limit=500&min_value=0`;
+      const resp = await fetchWithTimeout(actorEndpoint, {
+        headers: { 'x-api-key': ACTOR_API_KEY, 'Accept': 'application/json' },
+      }, 30000);
+
+      if (resp.ok) {
+        const data = await resp.json();
+        rawCount = data.total_raw || 0;
+        logStatus(`Seattle DCI · actor returned ${data.count} permits, mapping...`, 'running');
+
+        for (const p of (data.permits || [])) {
+          if (STOPFLAG) break;
+          const lead = actorPermitToLead(p);
+          if (lead) { categoryMatches++; out.push(lead); }
+          else exclusionDrops++;
+        }
+
+        logStatus(`Seattle DCI · ${out.length} leads from actor (${rawCount} raw, ${exclusionDrops} excluded)`, 'ok');
+        return out;
+      } else {
+        console.warn('Actor /hunt returned', resp.status, '— falling back to direct API');
+      }
+    } catch (e) {
+      console.warn('Actor /hunt failed:', e.message, '— falling back to direct API');
+    }
+  }
+
+  // ── Fallback: direct Open Data API ──────────────────────────────────────
+  let proxyUsed = '';
   try {
-    logStatus('Seattle DCI · connecting to data.seattle.gov...', 'running');
+    logStatus('Seattle DCI · connecting to data.seattle.gov (direct)...', 'running');
     const cutoff = new Date(Date.now() - 180*86400000).toISOString().slice(0,10);
-    // Use the CORRECT field name: applieddate (smashed lowercase, no underscore)
     const url = `https://data.seattle.gov/resource/76t5-zqzr.json?$where=applieddate>'${cutoff}T00:00:00'&$limit=500`;
     const r = await fetchDirect(url, { headers: { 'Accept': 'application/json' } });
     proxyUsed = r._proxy || 'direct';
     const rows = await r.json();
-    // Defensive: ensure rows is an array (some proxies wrap errors as objects)
-    if (!Array.isArray(rows)) {
-      const errMsg = rows && rows.message ? rows.message : 'API returned non-array (possible error response)';
-      throw new Error(errMsg);
-    }
+    if (!Array.isArray(rows)) throw new Error(rows?.message || 'API returned non-array');
     rawCount = rows.length;
     logStatus(`Seattle DCI · ${rawCount} permits fetched via ${proxyUsed}, filtering...`, 'running');
+
     for (const p of rows) {
       if (STOPFLAG) break;
-      // Use SMASHED LOWERCASE field names — verified against live API
       const desc = p.description || '';
-      const permitTypeDesc = p.permittypedesc || '';
-      const permitTypeMapped = p.permittypemapped || '';
-      const permitClass = p.permitclass || '';
-      const permitClassMapped = p.permitclassmapped || '';
-      const fullText = [desc, permitTypeDesc, permitTypeMapped, permitClass, permitClassMapped].join(' ');
-
+      const fullText = [desc, p.permittypedesc, p.permittypemapped, p.permitclass, p.permitclassmapped].join(' ');
       const category = matchCategory(fullText);
       if (!category) continue;
       categoryMatches++;
       if (isExcluded(fullText)) { exclusionDrops++; continue; }
 
-      const unitCount = (p.housingunitsadded ? parseInt(p.housingunitsadded, 10) : null) ||
-                        (p.housingunits ? parseInt(p.housingunits, 10) : null) ||
-                        extractUnitCount(fullText);
-
       const stage = classifyStage(p.statuscurrent, p.issueddate);
-      // Link is an object {url: '...'} in this dataset, not a string
-      const permitUrl = (p.link && p.link.url) ? p.link.url :
-                       `https://cosaccela.seattle.gov/Portal/Cap/CapDetail.aspx?Module=DPD&capID1=${p.permitnum || ''}`;
-
+      const permitUrl = (p.link?.url) || `https://cosaccela.seattle.gov/Portal/Cap/CapDetail.aspx?Module=DPD&capID1=${p.permitnum || ''}`;
       const lead = {
         id: 'sea_' + (p.permitnum || uid()),
         source: 'seattle_dci',
         source_label: 'Seattle DCI',
         title: `${category.label} — ${(p.originaladdress1 || '').slice(0,60)}`,
         description: desc.slice(0, 800),
-        permit_type: permitTypeDesc || permitTypeMapped,
+        permit_type: p.permittypedesc || p.permittypemapped,
         permit_number: p.permitnum,
         permit_status_raw: p.statuscurrent || '',
-        stage,
-        category,
-        unit_count: unitCount,
+        stage, category,
+        unit_count: extractUnitCount(fullText),
         address: p.originaladdress1 || '',
         city: p.originalcity || 'Seattle',
         zip: p.originalzip || '',
         county: 'KING',
         value: parseFloat(p.estprojectcost || 0) || null,
-        posted_ts: p.applieddate ? new Date(p.applieddate).getTime() :
-                   (p.issueddate ? new Date(p.issueddate).getTime() : Date.now()),
+        posted_ts: p.applieddate ? new Date(p.applieddate).getTime() : Date.now(),
         issued_date: p.issueddate,
         application_date: p.applieddate,
         url: permitUrl,
         contractor_name: p.contractorcompanyname || '',
-        no_gc: !p.contractorcompanyname,  // true = no GC assigned = golden window
+        no_gc: !p.contractorcompanyname,
         gc_license_url: p.contractorcompanyname
-          ? `https://secure.lni.wa.gov/verify/Results.aspx?NAME=${encodeURIComponent(p.contractorcompanyname)}&ZIPCODE=&UBI=&LIC=&PHRASE=false&DTYPE=ALL`
+          ? `https://secure.lni.wa.gov/verify/Results.aspx?NAME=${encodeURIComponent(p.contractorcompanyname)}&PHRASE=false&DTYPE=ALL`
           : null,
-        owner_name: '',  // Seattle dataset does NOT expose owner — needs Parcel lookup
-        owner_phone: '',
-        owner_email: '',
-        architect_name: '',
-        owners_rep: '',
-        state: 'new',
-        timeline: [],
-        captured_ts: now(),
-        notes: ''
+        owner_name: '', owner_phone: '', owner_email: '',
+        architect_name: '', owners_rep: '',
+        state: 'new', timeline: [], captured_ts: now(), notes: '',
       };
       scoreLead(lead);
       out.push(lead);
     }
   } catch(e) {
-    console.error('Seattle DCI failed:', e);
+    console.error('Seattle DCI direct failed:', e);
     const errMsg = e.message || e.name || 'unknown error';
     const isTimeout = errMsg.toLowerCase().includes('abort') || errMsg.toLowerCase().includes('timeout');
     return {
@@ -2026,11 +2090,37 @@ async function scrapePierceCounty() {
   };
 }
 
-// Snohomish County — pulls from Supabase leads table (CSV imports + actor enrichment)
+// Snohomish County — actor /hunt/snohomish (primary) → Supabase (fallback)
 async function scrapeSnohomish() {
   const out = [];
+
+  // ── Try actor /hunt/snohomish first ─────────────────────────────────────
+  if (ACTOR_URL && ACTOR_API_KEY && ACTOR_API_KEY !== 'changeme') {
+    try {
+      logStatus('Snohomish · connecting to actor...', 'running');
+      const resp = await fetchWithTimeout(
+        `${ACTOR_URL}/hunt/snohomish?days=180&limit=300`,
+        { headers: { 'x-api-key': ACTOR_API_KEY, 'Accept': 'application/json' } },
+        20000
+      );
+      if (resp.ok) {
+        const data = await resp.json();
+        for (const p of (data.permits || [])) {
+          if (STOPFLAG) break;
+          const lead = actorPermitToLead(p);
+          if (lead) out.push(lead);
+        }
+        logStatus(`Snohomish · ${out.length} leads from actor`, 'ok');
+        return { leads: out, summary: `Snohomish: ${out.length} leads via actor` };
+      }
+    } catch (e) {
+      console.warn('Actor /hunt/snohomish failed:', e.message, '— falling back to Supabase');
+    }
+  }
+
+  // ── Fallback: Supabase direct ────────────────────────────────────────────
   try {
-    logStatus('Snohomish · loading leads from database...', 'running');
+    logStatus('Snohomish · loading leads from Supabase...', 'running');
     const { data, error } = await _supabase
       .from('leads')
       .select('*')
@@ -2040,14 +2130,13 @@ async function scrapeSnohomish() {
 
     if (error) throw new Error(error.message);
     if (!data || !data.length) {
-      return { leads: [], summary: 'Snohomish: 0 leads in database (import CSV to populate)' };
+      return { leads: [], summary: 'Snohomish: 0 leads in database (import CSV or configure actor)' };
     }
 
     for (const row of data) {
       const desc = row.notes || row.description || '';
       const fullText = [desc, row.permit_type || '', row.trade || ''].join(' ');
       const category = matchCategory(fullText) || PROJECT_CATEGORIES.find(c => c.code === 'sfr');
-
       const lead = {
         id: 'sno_' + (row.id || uid()),
         source: 'snohomish_csv',
@@ -2058,8 +2147,7 @@ async function scrapeSnohomish() {
         permit_number: row.permit_number || null,
         permit_status_raw: row.status || 'Issued',
         stage: 'issued_lt_30d',
-        category,
-        unit_count: null,
+        category, unit_count: null,
         address: row.address || row.full_address || '',
         city: row.city || '',
         zip: row.zip || '',
@@ -2073,26 +2161,19 @@ async function scrapeSnohomish() {
         owner_name: row.owner_name || row.name || '',
         owner_phone: row.phone || '',
         owner_email: row.email || '',
-        architect_name: '',
-        owners_rep: '',
+        architect_name: '', owners_rep: '',
         no_gc: !row.contractor,
         fully_enriched: !!(row.phone || row.email),
-        state: 'new',
-        timeline: [],
-        captured_ts: now(),
-        notes: ''
+        state: 'new', timeline: [], captured_ts: now(), notes: ''
       };
       scoreLead(lead);
       if (!lead.is_excluded) out.push(lead);
     }
   } catch(e) {
-    console.error('Snohomish failed:', e);
+    console.error('Snohomish fallback failed:', e);
     return { leads: [], summary: `Snohomish: ❌ ${e.message}` };
   }
-  return {
-    leads: out,
-    summary: `Snohomish County: ${out.length} leads from database`
-  };
+  return { leads: out, summary: `Snohomish: ${out.length} leads from database` };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
