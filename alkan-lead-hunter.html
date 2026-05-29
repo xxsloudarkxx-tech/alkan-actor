@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <!--
 ═══════════════════════════════════════════════════════════════════════════════
-  ALKAN LEAD HUNTER  ·  v9-EB (Envision Builders Edition)  ·  2026-05-19
+  ALKAN LEAD HUNTER  ·  v13  ·  2026-05-19
   Pre-Permit & Early-Review Construction Intelligence
-  Specifically built for Envision Builders LLC — Tim Kairez / Ashley Kairez
+  Specifically built for Alkan Construction Assistant — Andres Alkan
 
   Target categories:
     • SFR new construction · DADU · ADU · Townhomes
@@ -25,105 +25,153 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="author" content="Andres Alkan — Alkan Construction Assistant">
 <meta name="copyright" content="© Andres Alkan / Alkan Construction Assistant. All rights reserved.">
-<title>Alkan Lead Hunter v11-EB · Envision Builders Edition</title>
+<title>Alkan Lead Hunter v13 · Alkan Construction Assistant</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,700&family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
   const SUPABASE_URL = 'https://qyesctuksvtblegkinrj.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF5ZXNjdHVrc3Z0YmxlZ2tpbnJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2NzU5NzEsImV4cCI6MjA5NTI1MTk3MX0.ENr_6um5ob3COrgiJrI67EAetch8Yutf_by7FY1gDMM';
   const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  // ── Actor config (alkan-actor on Render) ─────────────────────────────────
-  // Set ACTOR_URL to your Render service URL, e.g. https://alkan-actor.onrender.com
-  // Set ACTOR_API_KEY to the API_KEY env var you set in Render dashboard
+  // ── Alkan Actor (Render) ─────────────────────────────────────────────────
   const ACTOR_URL     = 'https://hunerleads.onrender.com';
   const ACTOR_API_KEY = 'alkan_prod_2026';
 </script>
 <style>
+/* ═══════════════════════════════════════════════════════════════
+   ALKAN LEAD HUNTER v13 — Light / Editorial Design System
+   Inspired by: Cormorant Garamond · DM Sans · DM Mono
+   Palette: Ink dark on warm paper, gold accents
+═══════════════════════════════════════════════════════════════ */
 :root {
-  --bg: #0a0d14;
-  --bg2: #0d1119;
-  --surface: #0f1320;
-  --surface2: #161c2d;
-  --surface3: #1f2740;
-  --border: #1e2536;
-  --border2: #2a3450;
-  --text: #e4e8f1;
-  --text2: #8b96b3;
-  --text3: #4d5973;
+  /* Core palette — light/paper theme */
+  --ink: #0E0D0B;
+  --ink-mid: #1E1D1A;
+  --ink-soft: #2E2C27;
+  --ink-muted: #5A5750;
+  --ink-faint: #8C8A84;
+
+  --surface: #F7F5F0;
+  --surface-warm: #F0EDE5;
+  --surface-card: #FDFCF9;
+  --surface-dark: #1A1917;
+
+  --border: #E2DDD4;
+  --border-strong: #C8C2B5;
+
+  --gold: #C9973A;
+  --gold-light: #E8BE6E;
+  --gold-pale: #FBF3E2;
+
   --alkan: #2A4F82;
-  --alkan2: #5a8fd6;
-  --alkan-glow: rgba(90,143,214,0.15);
-  --gold: #d4a651;
-  --gold2: #f0c878;
-  --eb-green: #2d8659;   /* Envision Builders accent */
-  --eb-green2: #4eb37e;
+  --alkan2: #1A5FA8;
+  --alkan-bg: #E8F1FB;
+
+  --green: #2E7D5A;
+  --green-bg: #EAF4EE;
+  --green-text: #1A5C3E;
+  --green-light: #4eb37e;
+
+  --amber: #9A6200;
+  --amber-bg: #FEF3DC;
+  --amber-text: #7A4A00;
+
+  --red: #A0281E;
+  --red-bg: #FDEDEC;
+  --red-text: #7A1C14;
+
+  --rose: #C0392B;
   --hot: #ef4444;
-  --warm: #f59e0b;
-  --green: #10b981;
-  --rose: #f43f5e;
-  --purple: #8b5cf6;
-  --teal: #2dd4bf;
+  --warm: #D97706;
+  --purple: #6D28D9;
+  --teal: #0F766E;
+
+  /* Legacy aliases for JS-driven classes */
+  --bg: var(--surface);
+  --bg2: var(--surface-warm);
+  --surface2: var(--surface-warm);
+  --surface3: var(--border);
+  --text: var(--ink);
+  --text2: var(--ink-muted);
+  --text3: var(--ink-faint);
+  --alkan-glow: rgba(201,151,58,0.08);
+  --eb-green: var(--green);
+  --eb-green2: var(--green-light);
+  --gold2: var(--gold-light);
+  --border2: var(--border-strong);
 }
-* { box-sizing: border-box; margin: 0; padding: 0; }
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html, body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: 'Inter', sans-serif;
+  background: var(--surface);
+  color: var(--ink);
+  font-family: 'DM Sans', sans-serif;
   font-size: 13px;
   min-height: 100vh;
 }
-body::before {
-  content: '';
-  position: fixed; inset: 0;
-  background:
-    radial-gradient(ellipse 1000px 600px at 15% -10%, var(--alkan-glow), transparent),
-    radial-gradient(ellipse 800px 600px at 90% 110%, rgba(78,179,126,0.05), transparent),
-    linear-gradient(180deg, transparent, rgba(0,0,0,0.3));
-  pointer-events: none;
-  z-index: 0;
-}
+
+/* Subtle paper texture overlay */
 body::after {
   content: '';
   position: fixed; inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E");
   pointer-events: none;
   z-index: 0;
-  opacity: 0.025;
-  mix-blend-mode: overlay;
+  opacity: 0.018;
+  mix-blend-mode: multiply;
 }
+
 a { color: inherit; text-decoration: none; }
 button { font-family: inherit; }
 
 /* ═══ HEADER ═══ */
 .header {
-  background: rgba(10,13,20,0.85);
-  backdrop-filter: blur(24px);
-  border-bottom: 1px solid var(--border);
-  padding: 0 28px;
-  height: 70px;
+  background: var(--ink);
+  border-bottom: 3px solid var(--gold);
+  padding: 0 32px;
+  height: 72px;
   display: flex;
   align-items: center;
-  gap: 22px;
+  gap: 24px;
   position: sticky;
   top: 0;
   z-index: 30;
+  position: relative;
+  overflow: hidden;
+}
+.header::before {
+  content: '';
+  position: absolute;
+  top: 0; right: 0;
+  width: 280px; height: 100%;
+  background: repeating-linear-gradient(
+    -55deg,
+    transparent,
+    transparent 18px,
+    rgba(201,151,58,0.06) 18px,
+    rgba(201,151,58,0.06) 19px
+  );
+  pointer-events: none;
 }
 .logo {
-  font-family: 'Fraunces', serif;
+  font-family: 'Cormorant Garamond', serif;
   font-size: 22px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-weight: 600;
+  letter-spacing: 0.01em;
   line-height: 1.1;
+  color: rgba(250,250,248,0.95);
+  position: relative;
+  z-index: 1;
 }
-.logo .blue { color: var(--alkan2); }
-.logo .gold { color: var(--gold2); }
+.logo .blue { color: var(--gold-light); }
+.logo .gold { color: var(--gold); }
 .tagline {
-  font-size: 10px;
-  color: var(--text3);
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  color: rgba(250,250,248,0.35);
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
   margin-top: 4px;
 }
 .client-badge {
@@ -132,15 +180,17 @@ button { font-family: inherit; }
   align-items: center;
   gap: 10px;
   padding: 8px 16px;
-  background: linear-gradient(135deg, rgba(45,134,89,0.15), rgba(78,179,126,0.05));
-  border: 1px solid rgba(78,179,126,0.4);
-  border-radius: 10px;
+  background: rgba(201,151,58,0.12);
+  border: 1px solid rgba(201,151,58,0.35);
+  border-radius: 8px;
+  position: relative;
+  z-index: 1;
 }
 .client-badge-dot {
-  width: 8px; height: 8px;
-  background: var(--eb-green2);
+  width: 7px; height: 7px;
+  background: var(--gold-light);
   border-radius: 50%;
-  box-shadow: 0 0 8px var(--eb-green2);
+  box-shadow: 0 0 8px var(--gold);
   animation: pulse 2s ease-in-out infinite;
 }
 @keyframes pulse {
@@ -148,61 +198,68 @@ button { font-family: inherit; }
   50% { opacity: 1; transform: scale(1.2); }
 }
 .client-badge-name {
-  font-family: 'Fraunces', serif;
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--eb-green2);
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gold-light);
 }
 .client-badge-sub {
-  font-size: 10px;
+  font-size: 9px;
+  letter-spacing: 0.05em;
+  color: rgba(250,250,248,0.35);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text3);
 }
 .tabs {
   display: flex;
-  gap: 4px;
-  margin-left: 30px;
+  gap: 2px;
+  margin-left: 24px;
+  position: relative;
+  z-index: 1;
 }
 .tab {
   background: transparent;
   border: 1px solid transparent;
-  color: var(--text2);
+  color: rgba(250,250,248,0.45);
   padding: 8px 14px;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 600;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  font-family: 'DM Sans', sans-serif;
+  letter-spacing: 0.02em;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 6px;
   transition: all 0.15s;
 }
-.tab:hover { color: var(--text); background: var(--surface2); }
+.tab:hover { color: rgba(250,250,248,0.8); background: rgba(255,255,255,0.06); }
 .tab.active {
-  background: var(--surface3);
-  border-color: var(--border2);
-  color: var(--eb-green2);
+  background: rgba(201,151,58,0.15);
+  border-color: rgba(201,151,58,0.35);
+  color: var(--gold-light);
 }
 .tab .badge {
-  background: var(--surface3);
+  background: rgba(255,255,255,0.08);
   padding: 2px 7px;
   border-radius: 8px;
   font-size: 10px;
-  font-weight: 700;
+  font-family: 'DM Mono', monospace;
+  font-weight: 500;
   min-width: 18px;
   text-align: center;
 }
 .tab.active .badge {
-  background: rgba(78,179,126,0.2);
-  color: var(--eb-green2);
+  background: rgba(201,151,58,0.25);
+  color: var(--gold-light);
 }
 
 /* ═══ LAYOUT ═══ */
 .layout {
   position: relative;
   z-index: 1;
-  padding: 24px 28px 60px;
+  padding: 28px 36px 60px;
   max-width: 1640px;
   margin: 0 auto;
 }
@@ -211,45 +268,50 @@ button { font-family: inherit; }
 
 /* ═══ HUNT BAR ═══ */
 .hunt-bar {
-  background: linear-gradient(135deg, var(--surface) 0%, var(--surface2) 100%);
+  background: var(--surface-card);
   border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 22px 26px;
+  border-radius: 10px;
+  padding: 24px 28px;
   margin-bottom: 18px;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   gap: 24px;
   flex-wrap: wrap;
+  border-top: 3px solid var(--gold);
 }
 .hunt-eyebrow {
-  font-size: 10px;
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
   text-transform: uppercase;
-  letter-spacing: 0.14em;
-  color: var(--eb-green2);
-  font-weight: 700;
-  margin-bottom: 4px;
+  letter-spacing: 0.16em;
+  color: var(--gold);
+  font-weight: 500;
+  margin-bottom: 6px;
 }
 .hunt-title {
-  font-family: 'Fraunces', serif;
-  font-size: 24px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  margin-bottom: 14px;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 26px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  margin-bottom: 16px;
+  color: var(--ink);
+  line-height: 1.2;
 }
-.hunt-title em { color: var(--eb-green2); font-style: normal; }
+.hunt-title em { color: var(--gold); font-style: normal; }
 .source-chips {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 .chip {
-  background: var(--surface2);
-  border: 1px solid var(--border2);
-  color: var(--text2);
+  background: var(--surface-warm);
+  border: 1px solid var(--border);
+  color: var(--ink-muted);
   padding: 7px 13px;
-  border-radius: 8px;
-  font-size: 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-family: 'DM Sans', sans-serif;
   font-weight: 500;
   cursor: pointer;
   display: flex;
@@ -257,54 +319,65 @@ button { font-family: inherit; }
   gap: 6px;
   transition: all 0.15s;
 }
-.chip:hover { border-color: var(--eb-green); color: var(--text); }
+.chip:hover { border-color: var(--gold); color: var(--ink); }
 .chip.active {
-  background: rgba(45,134,89,0.15);
-  border-color: var(--eb-green);
-  color: var(--eb-green2);
+  background: rgba(201,151,58,0.1);
+  border-color: rgba(201,151,58,0.5);
+  color: var(--amber);
 }
-.chip .icon { font-size: 14px; }
+.chip .icon { font-size: 13px; }
 .chip-help {
-  font-size: 10px;
-  color: var(--text3);
+  font-size: 9px;
+  color: var(--ink-faint);
   font-weight: 400;
 }
-.chip.active .chip-help { color: rgba(78,179,126,0.7); }
+.chip.active .chip-help { color: rgba(154,98,0,0.7); }
 .hunt-actions {
   display: flex;
   gap: 10px;
   flex-shrink: 0;
 }
 .btn-hunt {
-  background: linear-gradient(135deg, var(--eb-green) 0%, var(--eb-green2) 100%);
+  background: var(--ink);
   border: none;
-  color: white;
+  color: rgba(250,250,248,0.95);
   padding: 12px 22px;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  letter-spacing: 0.02em;
-  box-shadow: 0 4px 12px rgba(45,134,89,0.3);
-  transition: all 0.15s;
-}
-.btn-hunt:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(45,134,89,0.45); }
-.btn-hunt.stop {
-  background: linear-gradient(135deg, var(--rose) 0%, var(--hot) 100%);
-  box-shadow: 0 4px 12px rgba(244,63,94,0.35);
-}
-.btn-ghost {
-  background: var(--surface2);
-  border: 1px solid var(--border2);
-  color: var(--text2);
-  padding: 11px 16px;
-  border-radius: 10px;
+  border-radius: 8px;
   font-size: 12px;
   font-weight: 600;
+  font-family: 'DM Sans', sans-serif;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+  transition: all 0.15s;
+  position: relative;
+  overflow: hidden;
+}
+.btn-hunt::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--gold), var(--gold-light));
+}
+.btn-hunt:hover { transform: translateY(-1px); box-shadow: 0 5px 14px rgba(0,0,0,0.25); }
+.btn-hunt.stop {
+  background: var(--red);
+  color: white;
+}
+.btn-hunt.stop::after { background: rgba(255,255,255,0.3); }
+.btn-ghost {
+  background: var(--surface-warm);
+  border: 1px solid var(--border-strong);
+  color: var(--ink-muted);
+  padding: 11px 16px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.15s;
 }
-.btn-ghost:hover { color: var(--text); border-color: var(--eb-green); }
+.btn-ghost:hover { color: var(--ink); border-color: var(--gold); background: var(--gold-pale); }
 
 /* ═══ STATUS BAR ═══ */
 .status-bar {
@@ -312,9 +385,9 @@ button { font-family: inherit; }
   align-items: center;
   gap: 16px;
   padding: 12px 18px;
-  background: var(--surface);
+  background: var(--surface-card);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 8px;
   margin-bottom: 18px;
   font-size: 12px;
   flex-wrap: wrap;
@@ -324,15 +397,16 @@ button { font-family: inherit; }
   align-items: center;
   gap: 8px;
   padding: 4px 10px;
-  border-radius: 6px;
-  font-weight: 700;
-  font-size: 11px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 10px;
+  font-family: 'DM Mono', monospace;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
 }
-.status-state.idle { background: var(--surface3); color: var(--text2); }
-.status-state.running { background: rgba(78,179,126,0.15); color: var(--eb-green2); }
-.status-state.error { background: rgba(244,63,94,0.15); color: var(--rose); }
+.status-state.idle { background: var(--surface-warm); color: var(--ink-muted); }
+.status-state.running { background: var(--green-bg); color: var(--green-text); }
+.status-state.error { background: var(--red-bg); color: var(--red-text); }
 .pulse-dot {
   width: 6px; height: 6px;
   background: currentColor;
@@ -341,18 +415,19 @@ button { font-family: inherit; }
 }
 .status-msg {
   flex: 1;
-  color: var(--text2);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
+  color: var(--ink-muted);
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.03em;
 }
 .status-stats {
   display: flex;
-  gap: 14px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  color: var(--text3);
+  gap: 12px;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--ink-faint);
 }
-.status-stats b { color: var(--eb-green2); }
+.status-stats b { color: var(--green); }
 
 /* ═══ KPIs ═══ */
 .kpis {
@@ -362,46 +437,48 @@ button { font-family: inherit; }
   margin-bottom: 18px;
 }
 .kpi {
-  background: var(--surface);
+  background: var(--surface-card);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 18px 20px;
+  border-radius: 10px;
+  padding: 20px 22px;
   position: relative;
   overflow: hidden;
 }
 .kpi::before {
   content: '';
   position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, transparent 50%, rgba(255,255,255,0.02) 100%);
-  pointer-events: none;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--border);
 }
-.kpi.qualified { border-color: rgba(78,179,126,0.3); }
-.kpi.qualified .kpi-value { color: var(--eb-green2); }
-.kpi.prepermit { border-color: rgba(245,158,11,0.3); }
-.kpi.prepermit .kpi-value { color: var(--warm); }
-.kpi.enrich { border-color: rgba(139,92,246,0.3); }
+.kpi.qualified::before { background: linear-gradient(90deg, var(--green), #4eb37e); }
+.kpi.prepermit::before { background: linear-gradient(90deg, var(--gold), var(--gold-light)); }
+.kpi.enrich::before { background: linear-gradient(90deg, var(--purple), #8B5CF6); }
+.kpi.handoff::before { background: linear-gradient(90deg, var(--alkan), var(--alkan2)); }
+.kpi.qualified .kpi-value { color: var(--green); }
+.kpi.prepermit .kpi-value { color: var(--gold); }
 .kpi.enrich .kpi-value { color: var(--purple); }
-.kpi.handoff { border-color: rgba(212,166,81,0.3); }
-.kpi.handoff .kpi-value { color: var(--gold2); }
+.kpi.handoff .kpi-value { color: var(--alkan2); }
 .kpi-label {
-  font-size: 10px;
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--text3);
-  font-weight: 700;
-  margin-bottom: 6px;
+  letter-spacing: 0.14em;
+  color: var(--ink-faint);
+  font-weight: 500;
+  margin-bottom: 8px;
 }
 .kpi-value {
-  font-family: 'Fraunces', serif;
-  font-size: 32px;
-  font-weight: 700;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 36px;
+  font-weight: 600;
   line-height: 1;
   margin-bottom: 4px;
+  color: var(--ink);
 }
 .kpi-sub {
   font-size: 11px;
-  color: var(--text2);
+  color: var(--ink-faint);
 }
 
 /* ═══ TOOLBAR ═══ */
@@ -413,86 +490,90 @@ button { font-family: inherit; }
   align-items: center;
 }
 .toolbar-input, .toolbar-select {
-  background: var(--surface);
-  border: 1px solid var(--border2);
-  color: var(--text);
+  background: var(--surface-card);
+  border: 1px solid var(--border-strong);
+  color: var(--ink);
   padding: 9px 12px;
-  border-radius: 8px;
+  border-radius: 6px;
   font-size: 12px;
-  font-family: inherit;
+  font-family: 'DM Sans', sans-serif;
   outline: none;
   transition: border-color 0.15s;
 }
-.toolbar-input:focus, .toolbar-select:focus { border-color: var(--eb-green); }
+.toolbar-input::placeholder { color: var(--ink-faint); }
+.toolbar-input:focus, .toolbar-select:focus { border-color: var(--gold); }
 .toolbar-input { flex: 1; min-width: 200px; }
 .toolbar-toggle {
-  background: var(--surface);
-  border: 1px solid var(--border2);
-  color: var(--text2);
+  background: var(--surface-warm);
+  border: 1px solid var(--border-strong);
+  color: var(--ink-muted);
   padding: 9px 14px;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 600;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.15s;
 }
 .toolbar-toggle.on {
-  background: rgba(78,179,126,0.15);
-  border-color: var(--eb-green);
-  color: var(--eb-green2);
+  background: var(--gold-pale);
+  border-color: rgba(201,151,58,0.5);
+  color: var(--amber);
 }
 
 /* ═══ LEAD LIST ═══ */
 .lead-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 .lead-row {
-  background: var(--surface);
+  background: var(--surface-card);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 14px 18px;
+  border-radius: 10px;
+  padding: 16px 20px;
   display: grid;
-  grid-template-columns: 68px 1fr auto auto auto;  /* score | body | state | date | actions+quickbtns */
+  grid-template-columns: 68px 1fr auto auto auto;
   gap: 14px;
   align-items: center;
   cursor: pointer;
   transition: all 0.15s;
+  page-break-inside: avoid;
 }
 .lead-row:hover {
-  border-color: var(--eb-green);
-  background: var(--surface2);
+  border-color: var(--gold);
+  background: var(--gold-pale);
 }
-.lead-row.selected { border-color: var(--eb-green2); }
-.lead-row.qualified { border-left: 3px solid var(--eb-green); }
+.lead-row.selected { border-color: var(--gold); }
+.lead-row.qualified { border-left: 3px solid var(--green); }
 .lead-score {
   text-align: center;
-  background: var(--surface3);
-  border-radius: 10px;
+  background: var(--surface-warm);
+  border: 1px solid var(--border);
+  border-radius: 8px;
   padding: 10px 6px;
 }
 .lead-score .num {
-  font-family: 'Fraunces', serif;
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--eb-green2);
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--ink);
   line-height: 1;
 }
 .lead-score .lbl {
-  font-size: 9px;
+  font-family: 'DM Mono', monospace;
+  font-size: 8px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--text3);
+  color: var(--ink-faint);
   margin-top: 4px;
-  font-weight: 700;
+  font-weight: 500;
 }
 .lead-body { min-width: 0; }
 .lead-title {
   font-weight: 600;
   font-size: 13px;
   margin-bottom: 4px;
-  color: var(--text);
+  color: var(--ink);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -502,54 +583,62 @@ button { font-family: inherit; }
   gap: 6px;
   flex-wrap: wrap;
   font-size: 11px;
-  color: var(--text2);
+  color: var(--ink-muted);
   align-items: center;
 }
 .lead-tag {
   padding: 2px 7px;
-  border-radius: 5px;
-  font-size: 10px;
-  font-weight: 700;
+  border-radius: 4px;
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
-.tag-cat-multifamily { background: rgba(45,134,89,0.18); color: var(--eb-green2); }
-.tag-cat-sfr { background: rgba(90,143,214,0.18); color: var(--alkan2); }
-.tag-cat-adu { background: rgba(45,212,191,0.18); color: var(--teal); }
-.tag-cat-townhome { background: rgba(139,92,246,0.18); color: var(--purple); }
-.tag-cat-commercial { background: rgba(212,166,81,0.18); color: var(--gold2); }
-.tag-cat-affordable { background: rgba(244,63,94,0.18); color: var(--rose); }
-.tag-cat-default { background: var(--surface3); color: var(--text2); }
-.tag-source { background: var(--surface3); color: var(--text2); }
-.tag-status-prepermit { background: rgba(245,158,11,0.18); color: var(--warm); }
-.tag-status-review { background: rgba(139,92,246,0.18); color: var(--purple); }
-.tag-status-issued { background: rgba(75,85,99,0.3); color: var(--text3); }
+.tag-cat-multifamily { background: var(--green-bg); color: var(--green-text); }
+.tag-cat-sfr { background: var(--alkan-bg); color: var(--alkan2); }
+.tag-cat-adu { background: #E0F5F3; color: var(--teal); }
+.tag-cat-townhome { background: #EDE9FE; color: var(--purple); }
+.tag-cat-commercial { background: var(--gold-pale); color: var(--amber); }
+.tag-cat-affordable { background: var(--red-bg); color: var(--red-text); }
+.tag-cat-default { background: var(--surface-warm); color: var(--ink-muted); }
+.tag-source { background: var(--surface-warm); color: var(--ink-muted); }
+.tag-status-prepermit { background: var(--amber-bg); color: var(--amber-text); }
+.tag-status-review { background: #EDE9FE; color: var(--purple); }
+.tag-status-issued { background: var(--surface-warm); color: var(--ink-faint); }
 .intent-badge {
   padding: 3px 9px;
-  border-radius: 6px;
-  font-size: 10px;
-  font-weight: 700;
+  border-radius: 4px;
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  font-weight: 500;
   text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
-.intent-hot { background: rgba(239,68,68,0.18); color: var(--hot); }
-.intent-warm { background: rgba(245,158,11,0.18); color: var(--warm); }
-.intent-cold { background: var(--surface3); color: var(--text3); }
+.intent-hot { background: var(--red-bg); color: var(--red-text); }
+.intent-warm { background: var(--amber-bg); color: var(--amber-text); }
+.intent-cold { background: var(--surface-warm); color: var(--ink-faint); }
 .urgent-flag {
-  background: rgba(239,68,68,0.2);
-  color: var(--hot);
+  background: var(--red-bg);
+  color: var(--red-text);
   padding: 3px 9px;
-  border-radius: 6px;
-  font-size: 10px;
-  font-weight: 700;
+  border-radius: 4px;
+  font-size: 9px;
+  font-family: 'DM Mono', monospace;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   animation: pulse 2s ease-in-out infinite;
 }
 .no-contractor-flag {
-  background: rgba(78,179,126,0.2);
-  color: var(--eb-green2);
+  background: var(--green-bg);
+  color: var(--green-text);
   padding: 3px 9px;
-  border-radius: 6px;
-  font-size: 10px;
-  font-weight: 700;
+  border-radius: 4px;
+  font-size: 9px;
+  font-family: 'DM Mono', monospace;
+  font-weight: 500;
+  text-transform: uppercase;
 }
 .why-strip {
   margin-top: 8px;
@@ -558,50 +647,54 @@ button { font-family: inherit; }
   flex-wrap: wrap;
 }
 .why-chip {
-  background: rgba(78,179,126,0.08);
-  border: 1px solid rgba(78,179,126,0.2);
-  color: var(--eb-green2);
+  background: var(--green-bg);
+  border: 1px solid rgba(46,125,90,0.2);
+  color: var(--green-text);
   padding: 3px 9px;
-  border-radius: 5px;
-  font-size: 10px;
+  border-radius: 4px;
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
   font-weight: 500;
+  letter-spacing: 0.04em;
 }
 .why-chip.warn {
-  background: rgba(245,158,11,0.08);
-  border-color: rgba(245,158,11,0.2);
-  color: var(--warm);
+  background: var(--amber-bg);
+  border-color: rgba(154,98,0,0.2);
+  color: var(--amber-text);
 }
 .enrichment-strip {
   margin-top: 6px;
   font-size: 10px;
-  color: var(--text3);
-  font-family: 'JetBrains Mono', monospace;
+  color: var(--ink-faint);
+  font-family: 'DM Mono', monospace;
 }
-.enrichment-strip b { color: var(--text2); }
-.enrichment-strip .missing { color: var(--warm); }
-.enrichment-strip .ok { color: var(--eb-green2); }
+.enrichment-strip b { color: var(--ink-muted); }
+.enrichment-strip .missing { color: var(--amber); }
+.enrichment-strip .ok { color: var(--green); }
 .lead-state {
-  font-size: 10px;
-  font-weight: 700;
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   padding: 5px 10px;
-  border-radius: 6px;
-  background: var(--surface3);
-  color: var(--text2);
+  border-radius: 4px;
+  background: var(--surface-warm);
+  color: var(--ink-muted);
   white-space: nowrap;
 }
-.state-new { background: var(--surface3); color: var(--text2); }
-.state-contacted { background: rgba(90,143,214,0.18); color: var(--alkan2); }
-.state-qualified { background: rgba(78,179,126,0.18); color: var(--eb-green2); }
-.state-handoff { background: rgba(212,166,81,0.18); color: var(--gold2); }
-.state-won { background: rgba(16,185,129,0.18); color: var(--green); }
-.state-lost { background: rgba(244,63,94,0.18); color: var(--rose); }
+.state-new { background: var(--surface-warm); color: var(--ink-faint); }
+.state-contacted { background: var(--alkan-bg); color: var(--alkan2); }
+.state-qualified { background: var(--green-bg); color: var(--green-text); }
+.state-handoff { background: var(--gold-pale); color: var(--amber); }
+.state-won { background: var(--green-bg); color: var(--green); }
+.state-lost { background: var(--red-bg); color: var(--red-text); }
 .lead-date {
-  font-size: 11px;
-  color: var(--text3);
+  font-size: 10px;
+  color: var(--ink-faint);
   white-space: nowrap;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'DM Mono', monospace;
+  letter-spacing: 0.03em;
 }
 .lead-actions {
   display: flex;
@@ -612,17 +705,17 @@ button { font-family: inherit; }
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--surface2);
-  border: 1px solid var(--border2);
-  border-radius: 8px;
-  color: var(--text2);
+  background: var(--surface-warm);
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  color: var(--ink-muted);
   cursor: pointer;
   transition: all 0.15s;
   font-size: 14px;
 }
-.icon-btn:hover { color: var(--eb-green2); border-color: var(--eb-green); }
+.icon-btn:hover { color: var(--gold); border-color: var(--gold); background: var(--gold-pale); }
 
-/* ═══ QUICK ACTION BUTTONS (Approve / Discard) ═══ */
+/* ═══ QUICK ACTION BUTTONS ═══ */
 .quick-actions {
   display: flex;
   gap: 6px;
@@ -634,68 +727,71 @@ button { font-family: inherit; }
   align-items: center;
   gap: 5px;
   border: none;
-  border-radius: 10px;
-  font-size: 12px;
-  font-weight: 700;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: 'DM Sans', sans-serif;
   cursor: pointer;
   padding: 10px 14px;
   transition: all 0.18s;
   white-space: nowrap;
-  font-family: inherit;
-  min-height: 44px;
+  min-height: 42px;
   letter-spacing: 0.02em;
 }
 .btn-approve {
-  background: linear-gradient(135deg, var(--eb-green) 0%, var(--eb-green2) 100%);
-  color: #fff;
-  box-shadow: 0 3px 10px rgba(45,134,89,0.35);
+  background: var(--ink);
+  color: rgba(250,250,248,0.95);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  position: relative;
+  overflow: hidden;
 }
-.btn-approve:hover { transform: translateY(-1px); box-shadow: 0 5px 14px rgba(45,134,89,0.5); }
+.btn-approve::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--gold), var(--gold-light));
+}
+.btn-approve:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
 .btn-approve:active { transform: scale(0.97); }
 .btn-approve.done {
-  background: rgba(45,134,89,0.18);
-  border: 1.5px solid var(--eb-green);
-  color: var(--eb-green2);
+  background: var(--green-bg);
+  border: 1.5px solid var(--green);
+  color: var(--green-text);
   box-shadow: none;
 }
+.btn-approve.done::after { display: none; }
 .btn-discard {
-  background: rgba(244,63,94,0.1);
-  border: 1px solid rgba(244,63,94,0.3);
-  color: var(--rose);
+  background: var(--red-bg);
+  border: 1px solid rgba(160,40,30,0.25);
+  color: var(--red-text);
 }
-.btn-discard:hover { background: rgba(244,63,94,0.2); border-color: var(--rose); }
+.btn-discard:hover { background: #FCDCDA; border-color: var(--red); }
 .btn-discard:active { transform: scale(0.97); }
-.btn-discard.done {
-  opacity: 0.45;
-}
+.btn-discard.done { opacity: 0.45; }
 
 /* ═══ VETTED CONTACT BADGE ═══ */
 .vetted-badge {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  background: linear-gradient(135deg, rgba(45,134,89,0.25) 0%, rgba(78,179,126,0.12) 100%);
-  border: 1.5px solid var(--eb-green2);
-  color: var(--eb-green2);
+  background: var(--green-bg);
+  border: 1.5px solid rgba(46,125,90,0.4);
+  color: var(--green-text);
   padding: 3px 10px;
-  border-radius: 6px;
-  font-size: 10px;
-  font-weight: 800;
+  border-radius: 4px;
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  box-shadow: 0 0 8px rgba(78,179,126,0.2);
-  animation: vetted-glow 2.5s ease-in-out infinite;
-}
-@keyframes vetted-glow {
-  0%,100% { box-shadow: 0 0 5px rgba(78,179,126,0.15); }
-  50% { box-shadow: 0 0 14px rgba(78,179,126,0.45); }
 }
 
 /* ═══ GC VERIFICATION MODULE ═══ */
 .gc-verify-panel {
-  background: linear-gradient(135deg, rgba(10,13,20,0.9) 0%, rgba(15,19,32,0.95) 100%);
-  border: 1px solid var(--border2);
-  border-radius: 12px;
+  background: var(--surface-warm);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
   overflow: hidden;
   margin-top: 12px;
 }
@@ -704,32 +800,34 @@ button { font-family: inherit; }
   align-items: center;
   gap: 10px;
   padding: 12px 16px;
-  background: rgba(42,79,130,0.2);
+  background: var(--surface-card);
   border-bottom: 1px solid var(--border);
   cursor: pointer;
 }
-.gc-verify-header:hover { background: rgba(42,79,130,0.35); }
+.gc-verify-header:hover { background: var(--gold-pale); }
 .gc-verify-title {
-  font-size: 11px;
-  font-weight: 700;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--alkan2);
   flex: 1;
 }
 .gc-verify-status {
-  font-size: 10px;
-  font-weight: 700;
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  font-weight: 500;
   padding: 3px 9px;
-  border-radius: 5px;
+  border-radius: 4px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
-.gc-status-unknown { background: var(--surface3); color: var(--text3); }
-.gc-status-confirmed-none { background: rgba(16,185,129,0.2); color: var(--green); }
-.gc-status-has-gc { background: rgba(239,68,68,0.2); color: var(--hot); }
-.gc-status-pending { background: rgba(245,158,11,0.15); color: var(--warm); }
-.gc-status-error { background: rgba(244,63,94,0.15); color: var(--rose); }
+.gc-status-unknown { background: var(--surface-warm); color: var(--ink-faint); }
+.gc-status-confirmed-none { background: var(--green-bg); color: var(--green-text); }
+.gc-status-has-gc { background: var(--red-bg); color: var(--red-text); }
+.gc-status-pending { background: var(--amber-bg); color: var(--amber-text); }
+.gc-status-error { background: var(--red-bg); color: var(--red-text); }
 .gc-verify-body {
   padding: 14px 16px;
   display: none;
@@ -753,26 +851,26 @@ button { font-family: inherit; }
   flex-shrink: 0;
   margin-top: 1px;
 }
-.gc-source-icon.portal { background: rgba(42,79,130,0.3); }
-.gc-source-icon.parcel { background: rgba(45,134,89,0.25); }
-.gc-source-icon.accela { background: rgba(139,92,246,0.2); }
+.gc-source-icon.portal { background: var(--alkan-bg); }
+.gc-source-icon.parcel { background: var(--green-bg); }
+.gc-source-icon.accela { background: #EDE9FE; }
 .gc-source-info { flex: 1; min-width: 0; }
 .gc-source-name {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink);
   margin-bottom: 2px;
 }
 .gc-source-detail {
   font-size: 10px;
-  color: var(--text2);
-  font-family: 'JetBrains Mono', monospace;
+  color: var(--ink-muted);
+  font-family: 'DM Mono', monospace;
   line-height: 1.5;
 }
-.gc-source-detail .gc-found { color: var(--hot); font-weight: 700; }
+.gc-source-detail .gc-found { color: var(--red); font-weight: 700; }
 .gc-source-detail .gc-none { color: var(--green); font-weight: 700; }
-.gc-source-detail .gc-pending { color: var(--warm); }
-.gc-source-time { font-size: 9px; color: var(--text3); white-space: nowrap; }
+.gc-source-detail .gc-pending { color: var(--amber); }
+.gc-source-time { font-size: 9px; color: var(--ink-faint); white-space: nowrap; }
 .gc-verify-actions {
   display: flex;
   gap: 8px;
@@ -780,32 +878,32 @@ button { font-family: inherit; }
   flex-wrap: wrap;
 }
 .gc-btn {
-  background: var(--surface3);
-  border: 1px solid var(--border2);
-  color: var(--text2);
+  background: var(--surface-warm);
+  border: 1px solid var(--border-strong);
+  color: var(--ink-muted);
   padding: 8px 14px;
-  border-radius: 8px;
+  border-radius: 6px;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.15s;
-  font-family: inherit;
+  font-family: 'DM Sans', sans-serif;
   display: flex;
   align-items: center;
   gap: 5px;
 }
-.gc-btn:hover { color: var(--alkan2); border-color: var(--alkan); }
+.gc-btn:hover { color: var(--alkan2); border-color: var(--alkan); background: var(--alkan-bg); }
 .gc-btn.primary {
-  background: linear-gradient(135deg, var(--alkan) 0%, var(--alkan2) 100%);
+  background: var(--ink);
   border: none;
-  color: white;
-  font-weight: 700;
-  box-shadow: 0 3px 10px rgba(42,79,130,0.4);
+  color: rgba(250,250,248,0.95);
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
-.gc-btn.primary:hover { transform: translateY(-1px); box-shadow: 0 5px 14px rgba(42,79,130,0.55); }
+.gc-btn.primary:hover { transform: translateY(-1px); }
 .gc-spinner {
   width: 14px; height: 14px;
-  border: 2px solid rgba(90,143,214,0.3);
+  border: 2px solid rgba(42,79,130,0.2);
   border-top-color: var(--alkan2);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
@@ -814,22 +912,21 @@ button { font-family: inherit; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ═══ DATA CONFIDENCE REPORT ═══ */
-.confidence-bar-wrap {
-  margin: 12px 0;
-}
+.confidence-bar-wrap { margin: 12px 0; }
 .confidence-label {
   display: flex;
   justify-content: space-between;
-  font-size: 10px;
-  color: var(--text2);
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  color: var(--ink-muted);
   margin-bottom: 5px;
-  font-weight: 600;
+  font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.07em;
 }
 .confidence-bar {
-  height: 6px;
-  background: var(--surface3);
+  height: 5px;
+  background: var(--border);
   border-radius: 3px;
   overflow: hidden;
 }
@@ -838,46 +935,48 @@ button { font-family: inherit; }
   border-radius: 3px;
   transition: width 0.8s ease;
 }
-.conf-high { background: linear-gradient(90deg, var(--green), var(--eb-green2)); }
-.conf-mid { background: linear-gradient(90deg, var(--warm), #f0c878); }
-.conf-low { background: linear-gradient(90deg, var(--hot), var(--rose)); }
+.conf-high { background: linear-gradient(90deg, var(--green), #4eb37e); }
+.conf-mid { background: linear-gradient(90deg, var(--gold), var(--gold-light)); }
+.conf-low { background: linear-gradient(90deg, var(--red), #E57373); }
 .data-source-badge {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 9px;
-  font-weight: 700;
+  font-family: 'DM Mono', monospace;
+  font-size: 8px;
+  font-weight: 500;
   padding: 2px 7px;
   border-radius: 4px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   border: 1px solid;
 }
-.dsb-live { background: rgba(16,185,129,0.12); border-color: rgba(16,185,129,0.4); color: var(--green); }
-.dsb-portal { background: rgba(42,79,130,0.15); border-color: rgba(90,143,214,0.4); color: var(--alkan2); }
-.dsb-manual { background: rgba(245,158,11,0.12); border-color: rgba(245,158,11,0.35); color: var(--warm); }
-.dsb-inferred { background: var(--surface3); border-color: var(--border2); color: var(--text3); }
+.dsb-live { background: var(--green-bg); border-color: rgba(46,125,90,0.35); color: var(--green-text); }
+.dsb-portal { background: var(--alkan-bg); border-color: rgba(42,79,130,0.35); color: var(--alkan2); }
+.dsb-manual { background: var(--amber-bg); border-color: rgba(154,98,0,0.3); color: var(--amber-text); }
+.dsb-inferred { background: var(--surface-warm); border-color: var(--border-strong); color: var(--ink-faint); }
 
 /* ═══ GEOGRAPHIC PROXIMITY BADGE ═══ */
 .geo-badge {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  background: rgba(90,143,214,0.18);
-  border: 1px solid rgba(90,143,214,0.4);
+  background: var(--alkan-bg);
+  border: 1px solid rgba(42,79,130,0.3);
   color: var(--alkan2);
   padding: 3px 9px;
-  border-radius: 6px;
-  font-size: 10px;
-  font-weight: 700;
+  border-radius: 4px;
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
 
 /* ═══ LEAD ROW APPROVED/DISCARDED STATES ═══ */
 .lead-row.approved {
-  border-left: 3px solid var(--eb-green2);
-  background: linear-gradient(90deg, rgba(45,134,89,0.05), transparent);
+  border-left: 3px solid var(--green);
+  background: var(--green-bg);
 }
 .lead-row.discarded {
   opacity: 0.42;
@@ -889,286 +988,526 @@ button { font-family: inherit; }
 .empty-msg {
   text-align: center;
   padding: 60px 30px;
-  background: var(--surface);
-  border: 1px dashed var(--border2);
-  border-radius: 14px;
+  background: var(--surface-card);
+  border: 1px dashed var(--border-strong);
+  border-radius: 10px;
 }
 .em-eyebrow {
-  font-size: 10px;
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
   text-transform: uppercase;
-  letter-spacing: 0.14em;
-  color: var(--eb-green2);
-  font-weight: 700;
-  margin-bottom: 8px;
+  letter-spacing: 0.16em;
+  color: var(--gold);
+  font-weight: 500;
+  margin-bottom: 10px;
 }
 .em-title {
-  font-family: 'Fraunces', serif;
-  font-size: 22px;
-  font-weight: 600;
-  margin-bottom: 10px;
-}
-.empty-msg p {
-  color: var(--text2);
-  max-width: 540px;
-  margin: 0 auto;
-  font-size: 13px;
-  line-height: 1.6;
-}
-
-/* ═══ DRAWER ═══ */
-.drawer-overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.6);
-  z-index: 50;
-  align-items: stretch;
-  justify-content: flex-end;
-  backdrop-filter: blur(6px);
-}
-.drawer-overlay.on { display: flex; }
-.drawer {
-  background: var(--bg2);
-  border-left: 1px solid var(--border);
-  width: min(720px, 100%);
-  height: 100vh;
-  overflow-y: auto;
-  position: relative;
-}
-.drawer-close {
-  position: absolute;
-  top: 16px; right: 16px;
-  width: 34px; height: 34px;
-  background: var(--surface2);
-  border: 1px solid var(--border2);
-  border-radius: 8px;
-  color: var(--text2);
-  cursor: pointer;
-  font-size: 14px;
-  z-index: 2;
-}
-.drawer-close:hover { border-color: var(--rose); color: var(--rose); }
-.drawer-content { padding: 28px 32px; }
-.drawer-eyebrow {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  font-weight: 700;
-  margin-bottom: 6px;
-  color: var(--eb-green2);
-}
-.drawer-title {
-  font-family: 'Fraunces', serif;
-  font-size: 22px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  margin-bottom: 10px;
-  line-height: 1.25;
-}
-.drawer-sub {
-  color: var(--text2);
-  font-size: 13px;
-  line-height: 1.6;
-  margin-bottom: 16px;
-}
-.drawer-meta-row {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-bottom: 20px;
-}
-.drawer-section {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 18px 20px;
-  margin-bottom: 14px;
-}
-.drawer-section-title {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--eb-green2);
-  font-weight: 700;
-  margin-bottom: 12px;
-}
-.dr-field {
-  display: flex;
-  justify-content: space-between;
-  padding: 6px 0;
-  border-bottom: 1px dashed var(--border);
-  font-size: 12px;
-}
-.dr-field:last-child { border-bottom: none; }
-.dr-field-label {
-  color: var(--text3);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-weight: 600;
-  font-size: 10px;
-  align-self: center;
-}
-.dr-field-value {
-  color: var(--text);
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 24px;
   font-weight: 500;
-  text-align: right;
-  max-width: 65%;
-  word-break: break-word;
+  color: var(--ink);
+  margin-bottom: 10px;
+  line-height: 1.2;
 }
-.dr-field-value.missing { color: var(--warm); font-style: italic; }
-.dr-field-value.ok { color: var(--eb-green2); }
-.dr-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 14px;
-}
-.dr-btn {
-  background: var(--surface2);
-  border: 1px solid var(--border2);
-  color: var(--text);
-  padding: 9px 14px;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s;
-  font-family: inherit;
-}
-.dr-btn:hover { border-color: var(--eb-green); }
-.dr-btn.primary {
-  background: linear-gradient(135deg, var(--eb-green) 0%, var(--eb-green2) 100%);
-  border-color: transparent;
-  color: white;
-}
-.dr-btn.warn { color: var(--warm); border-color: rgba(245,158,11,0.3); }
-.dr-btn.danger { color: var(--rose); border-color: rgba(244,63,94,0.3); }
-.brief-output {
-  background: #050709;
-  border: 1px solid var(--border2);
-  border-radius: 10px;
-  padding: 16px;
-  margin-top: 12px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  line-height: 1.6;
-  white-space: pre-wrap;
-  color: var(--text);
-  max-height: 480px;
-  overflow-y: auto;
-}
-.search-links {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 6px;
-  margin-top: 8px;
-}
-.search-link {
-  background: var(--surface2);
-  border: 1px solid var(--border2);
-  color: var(--text2);
-  padding: 8px 10px;
-  border-radius: 7px;
-  font-size: 11px;
-  text-align: center;
-  transition: all 0.15s;
-}
-.search-link:hover { color: var(--text); border-color: var(--eb-green); }
-
-/* ═══ FOOTER ═══ */
-.alkan-footer {
-  margin-top: 60px;
-  padding: 30px 28px;
-  border-top: 1px solid var(--border);
-  background: rgba(10,13,20,0.6);
-}
-.alkan-footer-inner {
-  max-width: 1640px;
+.em-body {
+  font-size: 13px;
+  color: var(--ink-muted);
+  max-width: 480px;
   margin: 0 auto;
+  line-height: 1.6;
+}
+
+/* ═══ LEAD DETAIL PANEL ═══ */
+.detail-panel {
+  background: var(--surface-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 12px;
+  border-top: 3px solid var(--gold);
+}
+.detail-header {
+  padding: 20px 24px 16px;
+  background: var(--surface-warm);
+  border-bottom: 1px solid var(--border);
+}
+.detail-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+.detail-address {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--ink-faint);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.detail-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0;
+}
+.detail-section {
+  padding: 18px 22px;
+  border-right: 1px solid var(--border);
+}
+.detail-section:last-child { border-right: none; }
+.section-heading {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.detail-row {
   display: flex;
   justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 20px;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.detail-key {
   font-size: 11px;
-  color: var(--text3);
+  color: var(--ink-faint);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
-.alkan-footer-logo {
-  font-family: 'Fraunces', serif;
-  font-size: 16px;
-  font-weight: 700;
-  margin-bottom: 4px;
-  color: var(--text2);
+.detail-val {
+  font-size: 12px;
+  color: var(--ink-soft);
+  text-align: right;
+  font-weight: 500;
+  word-break: break-word;
+  min-width: 0;
 }
-.alkan-footer-logo .blue { color: var(--alkan2); }
-.alkan-footer-logo .gold { color: var(--gold2); }
-.alkan-footer-by { color: var(--text3); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; }
-.alkan-footer-contact a { color: var(--text2); }
-.alkan-footer-contact a:hover { color: var(--eb-green2); }
-.alkan-footer-copy { margin-top: 6px; font-size: 10px; }
-.alkan-footer-tech { margin-top: 2px; font-size: 9px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; }
+.detail-val.big {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.detail-val.mono {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--alkan2);
+}
+.detail-val.email {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--alkan2);
+  word-break: break-all;
+}
+.detail-val.na { color: var(--ink-faint); font-style: italic; font-weight: 400; }
 
-@media (max-width: 880px) {
-  .lead-row {
-    grid-template-columns: 56px 1fr;
-    padding: 12px 14px;
-    gap: 10px;
-  }
-  .lead-state, .lead-date { display: none; }
-  .lead-actions {
-    grid-column: 1 / -1;
-    justify-content: flex-end;
-    border-top: 1px solid var(--border);
-    padding-top: 10px;
-    margin-top: 4px;
-  }
-  .quick-actions {
-    width: 100%;
-    justify-content: stretch;
-  }
-  .btn-approve, .btn-discard {
-    flex: 1;
-    justify-content: center;
-    font-size: 13px;
-    min-height: 48px;
-    border-radius: 12px;
-  }
-  .hunt-bar { flex-direction: column; }
-  .lead-title { font-size: 11px !important; }
-  .header { padding: 0 14px; gap: 10px; }
-  .tabs { margin-left: 0; gap: 2px; }
-  .tab { padding: 6px 10px; font-size: 11px; }
-  .client-badge { display: none; }
-  .layout { padding: 14px 14px 60px; }
+/* ═══ SCORE BAR ═══ */
+.score-bar {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+  overflow: hidden;
+  margin: 6px 0 10px;
+}
+.score-fill {
+  height: 100%;
+  border-radius: 2px;
 }
 
-/* ═══ PERSISTENCE ADVISORY BANNER ═══ */
-.persistence-advisory {
+/* ═══ NOTES AREA ═══ */
+.notes-area {
+  background: var(--surface-warm);
+  border: 1px solid var(--border-strong);
+  color: var(--ink);
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: 'DM Sans', sans-serif;
+  width: 100%;
+  resize: vertical;
+  min-height: 80px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.notes-area:focus { border-color: var(--gold); }
+.notes-area::placeholder { color: var(--ink-faint); }
+
+/* ═══ TIMELINE ═══ */
+.timeline { padding: 12px 0; }
+.tl-entry {
+  display: flex;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+.tl-entry:last-child { border-bottom: none; }
+.tl-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--gold);
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+.tl-content { flex: 1; }
+.tl-action {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 2px;
+}
+.tl-note {
+  font-size: 11px;
+  color: var(--ink-muted);
+  line-height: 1.5;
+}
+.tl-time {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  color: var(--ink-faint);
+  white-space: nowrap;
+  letter-spacing: 0.04em;
+}
+
+/* ═══ MODAL OVERLAY ═══ */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(14,13,11,0.65);
+  backdrop-filter: blur(4px);
+  z-index: 100;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 40px 20px;
+  overflow-y: auto;
+}
+.modal {
+  background: var(--surface-card);
+  border-radius: 12px;
+  width: 100%;
+  max-width: 860px;
+  border: 1px solid var(--border-strong);
+  overflow: hidden;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.2);
+  border-top: 3px solid var(--gold);
+}
+.modal-head {
+  background: var(--ink);
+  padding: 20px 24px;
   display: flex;
   align-items: center;
-  gap: 12px;
-  background: linear-gradient(135deg, rgba(212,166,81,0.1), rgba(240,200,120,0.06));
-  border: 1px solid rgba(212,166,81,0.35);
-  border-radius: 10px;
-  padding: 10px 16px;
-  margin-bottom: 14px;
-  font-size: 11px;
-  color: var(--gold2);
+  gap: 16px;
 }
-.persistence-advisory .pa-icon { font-size: 14px; flex-shrink: 0; }
-.persistence-advisory .pa-text { flex: 1; line-height: 1.5; }
-.persistence-advisory .pa-text b { color: var(--gold2); }
-.persistence-advisory .pa-dismiss {
-  background: transparent;
-  border: 1px solid rgba(212,166,81,0.4);
-  color: var(--gold2);
-  padding: 4px 10px;
+.modal-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 18px;
+  font-weight: 500;
+  color: rgba(250,250,248,0.95);
+  flex: 1;
+}
+.modal-close {
+  width: 32px; height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
   border-radius: 6px;
-  font-size: 10px;
+  color: rgba(250,250,248,0.6);
   cursor: pointer;
-  flex-shrink: 0;
-  font-family: inherit;
+  font-size: 16px;
+  transition: all 0.15s;
+}
+.modal-close:hover { background: rgba(201,151,58,0.2); color: var(--gold-light); }
+.modal-body { padding: 24px; }
+.modal-footer {
+  padding: 16px 24px;
+  background: var(--surface-warm);
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* ═══ PIPELINE VIEW ═══ */
+.pipeline-section-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.pipeline-count-badge {
+  background: var(--ink);
+  color: var(--gold-light);
+  font-size: 9px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  letter-spacing: 0.08em;
+}
+
+/* ═══ SECTION HEADINGS ═══ */
+.section-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+.section-sub {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--ink-faint);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+
+/* ═══ PERSISTENCE ADVISORY ═══ */
+.persistence-advisory {
+  background: var(--gold-pale);
+  border: 1px solid rgba(201,151,58,0.35);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--ink-soft);
+  line-height: 1.5;
 }
 .persistence-advisory.hidden { display: none; }
+.pa-icon { font-size: 15px; flex-shrink: 0; margin-top: 1px; color: var(--gold); }
+.pa-text { flex: 1; }
+.pa-dismiss {
+  background: transparent;
+  border: 1px solid rgba(201,151,58,0.4);
+  color: var(--amber);
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-family: 'DM Mono', monospace;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+.pa-dismiss:hover { background: rgba(201,151,58,0.15); }
+
+/* ═══ CSV IMPORT ═══ */
+.csv-drop-zone {
+  border: 2px dashed var(--border-strong);
+  border-radius: 10px;
+  padding: 48px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--surface-card);
+}
+.csv-drop-zone:hover, .csv-drop-zone.drag-over {
+  border-color: var(--gold);
+  background: var(--gold-pale);
+}
+.csv-drop-zone-icon { font-size: 36px; margin-bottom: 14px; opacity: 0.5; }
+.csv-drop-zone-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+.csv-drop-zone-sub {
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+.csv-status {
+  display: none;
+  padding: 12px 16px;
+  background: var(--green-bg);
+  border: 1px solid rgba(46,125,90,0.3);
+  border-radius: 8px;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--green-text);
+  letter-spacing: 0.03em;
+}
+
+/* ═══ CARDS (used in handoff / report views) ═══ */
+.card-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.info-card {
+  background: var(--surface-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 18px 20px;
+  overflow: hidden;
+}
+.info-card-heading {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+.info-key { color: var(--ink-faint); }
+.info-val { color: var(--ink-soft); font-weight: 500; }
+.info-val.mono { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--alkan2); }
+.info-val.email { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--alkan2); word-break: break-all; }
+
+/* ═══ ALKAN FOOTER ═══ */
+.alkan-footer {
+  background: var(--ink);
+  border-top: 3px solid var(--gold);
+  padding: 24px 36px;
+  position: relative;
+  overflow: hidden;
+}
+.alkan-footer::before {
+  content: '';
+  position: absolute;
+  top: 0; right: 0;
+  width: 200px; height: 100%;
+  background: repeating-linear-gradient(
+    -55deg,
+    transparent,
+    transparent 18px,
+    rgba(201,151,58,0.05) 18px,
+    rgba(201,151,58,0.05) 19px
+  );
+}
+.alkan-footer-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  position: relative;
+  z-index: 1;
+}
+.alkan-footer-logo {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 16px;
+  font-weight: 500;
+  color: rgba(250,250,248,0.9);
+}
+.alkan-footer-logo .blue { color: var(--gold-light); }
+.alkan-footer-logo .gold { color: var(--gold); }
+.alkan-footer-by {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  color: rgba(250,250,248,0.3);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+.alkan-footer-contact {
+  display: flex;
+  gap: 10px;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: rgba(250,250,248,0.55);
+  letter-spacing: 0.04em;
+}
+.alkan-footer-contact a:hover { color: var(--gold-light); }
+.alkan-footer-copy {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  color: rgba(250,250,248,0.25);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+.alkan-footer-tech {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  color: rgba(250,250,248,0.2);
+  margin-top: 2px;
+}
+
+/* ═══ INLINE EDITABLE STATES ═══ */
+select.lead-state-select {
+  background: var(--surface-warm);
+  border: 1px solid var(--border-strong);
+  color: var(--ink);
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-family: 'DM Sans', sans-serif;
+  cursor: pointer;
+  outline: none;
+}
+
+/* ═══ TABLE styles ═══ */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.data-table th {
+  background: var(--surface-warm);
+  padding: 10px 14px;
+  text-align: left;
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink-faint);
+  font-weight: 500;
+  border-bottom: 1px solid var(--border-strong);
+  white-space: nowrap;
+}
+.data-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--ink-soft);
+}
+.data-table tr:nth-child(even) td { background: var(--surface-warm); }
+.data-table tr:hover td { background: var(--gold-pale); }
+
+/* ═══ RESPONSIVE ═══ */
+@media (max-width: 900px) {
+  .lead-row {
+    grid-template-columns: 56px 1fr auto;
+    grid-template-rows: auto auto;
+  }
+  .lead-date { display: none; }
+  .detail-body { grid-template-columns: 1fr; }
+  .detail-section { border-right: none; border-bottom: 1px solid var(--border); }
+}
+@media (max-width: 700px) {
+  .header { padding: 0 16px; height: auto; flex-wrap: wrap; padding-top: 12px; padding-bottom: 12px; }
+  .tabs { margin-left: 0; flex-wrap: wrap; }
+  .layout { padding: 16px 16px 40px; }
+}
+@media print {
+  body { background: white; }
+  .header, .hunt-bar, .status-bar, .view-toolbar, .quick-actions { display: none !important; }
+  .lead-row { page-break-inside: avoid; border: 1px solid var(--border); }
+}
 </style>
 </head>
 <body>
@@ -1176,20 +1515,21 @@ button { font-family: inherit; }
 <header class="header">
   <div>
     <div class="logo">Alkan <span class="blue">Lead</span> <span class="gold">Hunter</span></div>
-    <div class="tagline">v12-EB · Envision Builders Edition · Pre-Permit Intelligence · WA Statewide</div>
+    <div class="tagline">v13 · Alkan Construction Assistant · Pre-Permit Intelligence · WA Statewide</div>
   </div>
   <div class="tabs">
     <button class="tab active" data-view="hunt"><span>🎯</span> Hunt <span class="badge" id="tabHuntBadge">0</span></button>
     <button class="tab" data-view="pipeline"><span>📋</span> Pipeline <span class="badge" id="tabPipeBadge">0</span></button>
     <button class="tab" data-view="handoffs"><span>🤝</span> Handoffs <span class="badge" id="tabHandoffBadge">0</span></button>
     <button class="tab" data-view="edms"><span>📄</span> Doc Extractor</button>
+    <button class="tab" data-view="csvimport"><span>📥</span> CSV Import <span class="badge" id="tabCsvBadge">0</span></button>
     <button class="tab" data-view="report"><span>📊</span> Weekly Report</button>
   </div>
   <div class="client-badge">
     <div class="client-badge-dot"></div>
     <div>
-      <div class="client-badge-name">ENVISION BUILDERS LLC</div>
-      <div class="client-badge-sub">Tim Kairez · Bonney Lake, WA</div>
+      <div class="client-badge-name">ALKAN CONSTRUCTION ASSISTANT</div>
+      <div class="client-badge-sub">Andres Alkan · León, Guanajuato · Puget Sound WA</div>
     </div>
   </div>
 </header>
@@ -1207,7 +1547,7 @@ button { font-family: inherit; }
           <!-- Tier 1 — Active API/Socrata -->
           <button class="chip active" data-source="seattle_dci_application"><span class="icon">🏗</span> Seattle DCI <span class="chip-help">Socrata live</span></button>
           <button class="chip active" data-source="king_county"><span class="icon">🏛</span> King County <span class="chip-help">unincorporated</span></button>
-          <button class="chip active" data-source="pierce_county"><span class="icon">🏛</span> Pierce County <span class="chip-help">Tim's backyard</span></button>
+          <button class="chip active" data-source="pierce_county"><span class="icon">🏛</span> Pierce County <span class="chip-help">Alkan's backyard</span></button>
           <button class="chip active" data-source="snohomish_county"><span class="icon">🏛</span> Snohomish <span class="chip-help">N. Puget Sound</span></button>
           <!-- Tier 2 — MyBuildingPermit hub -->
           <button class="chip" data-source="mybuildingpermit"><span class="icon">🏙</span> MyBuildingPermit <span class="chip-help">Bellevue · Renton · Kirkland +12</span></button>
@@ -1226,13 +1566,13 @@ button { font-family: inherit; }
       <div class="hunt-actions">
         <button class="btn-hunt" id="btnHunt" onclick="startHunt()">▶ Start Hunt</button>
         <button class="btn-ghost" onclick="clearAll()">⟲ Clear All</button>
-        <button class="btn-ghost" onclick="localStorage.removeItem('eb_seeded_v9'); seedDemoLeads()" title="Re-seed sample leads">🤖 Re-seed Demo</button>
+        <button class="btn-ghost" onclick="localStorage.removeItem('alkan_seeded_v13'); seedDemoLeads()" title="Re-seed sample leads">🤖 Re-seed Demo</button>
       </div>
     </div>
 
     <div class="persistence-advisory" id="persistenceAdvisory">
       <span class="pa-icon">⚠</span>
-      <div class="pa-text"><b>Heads up, Tim:</b> Your selections (Approve / Discard) are saved locally in this browser. Clearing browser history will erase them. For real cross-device persistence, Andres can connect Firebase/Supabase — let him know.</div>
+      <div class="pa-text"><b>Heads up:</b> Your selections (Approve / Discard) are saved locally in this browser. Clearing browser history will erase them. For real cross-device persistence, Andres can connect Firebase/Supabase — let him know.</div>
       <button class="pa-dismiss" onclick="document.getElementById('persistenceAdvisory').classList.add('hidden');localStorage.setItem('pa_dismissed','1')">OK, entendido</button>
     </div>
     <div class="status-bar">
@@ -1246,6 +1586,12 @@ button { font-family: inherit; }
         <span>kc: <b id="ctKC">0</b></span>
         <span>pc: <b id="ctPC">0</b></span>
         <span>sno: <b id="ctSno">0</b></span>
+        <span>mbp: <b id="ctMBP">0</b></span>
+        <span>clk: <b id="ctClark">0</b></span>
+        <span>spo: <b id="ctSpokane">0</b></span>
+        <span>thu: <b id="ctThurston">0</b></span>
+        <span>w/s: <b id="ctWhatcom">0</b></span>
+        <span>kit: <b id="ctKitsap">0</b></span>
       </div>
     </div>
 
@@ -1345,12 +1691,124 @@ button { font-family: inherit; }
     <div id="handoffList" class="lead-list"></div>
   </div>
 
+  <!-- ═══════════════════════════════════ DOC EXTRACTOR (EDMS) ═══════════════════════════════════ -->
+  <div class="view" id="view-edms">
+    <div class="hunt-bar">
+      <div>
+        <div class="hunt-eyebrow">Owner-first enrichment · Claude vision</div>
+        <div class="hunt-title">Document extractor <em>— pull the owner the portal hides</em>.</div>
+      </div>
+    </div>
+
+    <div class="edms-intro">
+      When a permit's front page shows <b>no owner and no contractor</b>, the real contacts live in the
+      <b>attached PDFs</b> — the signed application, SEPA checklist, and financial-responsibility form.
+      Seattle publishes these in its <b>Electronic Document Library (EDMS)</b>
+      at <code>web6.seattle.gov/dpd/edms</code>, searchable by case number or address since 2006.
+      Drop the PDF here and Claude reads it with vision to extract the owner, phone, email, architect,
+      and whether a GC is already named — the <b>"no-GC" signal</b> that says you're early.
+    </div>
+
+    <div class="edms-grid">
+      <!-- INPUT CARD -->
+      <div class="edms-card">
+        <div class="edms-card-title">📄 Source document</div>
+
+        <div class="edms-droparea" id="edmsDrop">
+          <input type="file" id="edmsFile" accept="application/pdf,image/*" style="display:none">
+          <div class="edms-drop-icon">⬆</div>
+          <div class="edms-drop-text">Drop a permit PDF here, or <span class="edms-link">browse</span></div>
+          <div class="edms-drop-sub">Signed application · SEPA checklist · financial responsibility form · plan cover sheet</div>
+          <div class="edms-filename" id="edmsFilename"></div>
+        </div>
+
+        <div class="edms-or">— or paste document text —</div>
+        <textarea id="edmsPasteText" class="edms-textarea" placeholder="Paste raw text copied from the permit application / EDMS document here..."></textarea>
+
+        <div class="edms-meta-row">
+          <input type="text" id="edmsLinkPermit" class="edms-input" placeholder="Permit / case # (optional — links result to an existing lead)">
+        </div>
+
+        <button class="dr-btn primary" id="edmsExtractBtn" onclick="runEdmsExtract()" style="width:100%;margin-top:10px;">
+          ✦ Extract with Claude
+        </button>
+
+        <div class="edms-links">
+          <div class="edms-links-title">Quick jump to source libraries</div>
+          <a class="edms-portal-link" target="_blank" href="https://web6.seattle.gov/dpd/edms/">📚 Seattle EDMS (Document Library)</a>
+          <a class="edms-portal-link" target="_blank" href="https://cosaccela.seattle.gov/portal/welcome.aspx">🏗 Seattle Accela Portal</a>
+          <a class="edms-portal-link" target="_blank" href="https://pals.piercecountywa.gov/palsonline/">🏛 Pierce PALS+ Portal</a>
+          <a class="edms-portal-link" target="_blank" href="https://www.mybuildingpermit.com/">🏙 MyBuildingPermit (King/Sno cities)</a>
+        </div>
+      </div>
+
+      <!-- OUTPUT CARD -->
+      <div class="edms-card">
+        <div class="edms-card-title">✦ Extracted contacts</div>
+        <div id="edmsResult" class="edms-result-empty">
+          Nothing extracted yet. Drop a document and click <b>Extract with Claude</b>.
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ═══════════════════════════════════ REPORT VIEW ═══════════════════════════════════ -->
+
+  <!-- ═══════════════════════════════════ CSV IMPORT VIEW ═══════════════════════════════════ -->
+  <div class="view" id="view-csvimport">
+    <div class="hunt-bar">
+      <div>
+        <div class="hunt-eyebrow">Bulk lead import · CSV format</div>
+        <div class="hunt-title">CSV Import — <em>carga masiva de leads</em> al pipeline.</div>
+      </div>
+      <div class="hunt-actions">
+        <button class="btn-ghost" onclick="triggerCsvPick()">📂 Seleccionar CSV</button>
+        <input type="file" id="csvFileInput" accept=".csv" style="display:none" onchange="handleCsvFile(this.files[0])">
+        <button class="btn-ghost" onclick="clearCsvPreview()" id="csvClearBtn" style="display:none">⟲ Limpiar</button>
+      </div>
+    </div>
+
+    <div class="edms-intro" style="margin-bottom:20px">
+      Sube cualquier CSV con columnas de leads (nombre, empresa, teléfono, dirección, notas de permisos).
+      La herramienta mapea automáticamente las columnas, detecta la categoría del proyecto, calcula el score
+      y agrega los leads al pipeline — listos para enriquecer y contactar.
+    </div>
+
+    <div id="csvDropZone" style="border:2px dashed var(--border2);border-radius:12px;padding:40px;text-align:center;cursor:pointer;margin-bottom:20px;transition:border-color 0.2s" onclick="triggerCsvPick()" ondragover="event.preventDefault();this.style.borderColor='var(--alkan2)'" ondragleave="this.style.borderColor='var(--border2)'" ondrop="event.preventDefault();this.style.borderColor='var(--border2)';handleCsvFile(event.dataTransfer.files[0])">
+      <div style="font-size:32px;margin-bottom:10px">📥</div>
+      <div style="color:var(--text);font-size:14px;font-weight:600;margin-bottom:6px">Drop your CSV here or click to browse</div>
+      <div style="color:var(--text3);font-size:12px">Formato Alkan Lead Hunter · cualquier CSV con columnas name/phone/address/notes</div>
+    </div>
+
+    <div id="csvStatus" style="display:none;padding:12px 16px;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;margin-bottom:16px;font-size:13px;color:var(--text2)"></div>
+
+    <div id="csvMappingSection" style="display:none;margin-bottom:20px">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);margin-bottom:10px">Mapeo de columnas detectado</div>
+      <div id="csvMappingGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px"></div>
+    </div>
+
+    <div id="csvPreviewSection" style="display:none">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3)" id="csvPreviewTitle">Preview</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn-hunt" style="padding:8px 20px;font-size:13px" onclick="importCsvLeads()">▶ Importar todos al pipeline</button>
+        </div>
+      </div>
+      <div style="overflow-x:auto;border:1px solid var(--border);border-radius:10px">
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead id="csvPreviewHead"></thead>
+          <tbody id="csvPreviewBody"></tbody>
+        </table>
+      </div>
+      <div id="csvImportResult" style="margin-top:14px;font-size:13px"></div>
+    </div>
+  </div>
+
   <div class="view" id="view-report">
     <div class="hunt-bar">
       <div>
         <div class="hunt-eyebrow">Performance &amp; transparency</div>
-        <div class="hunt-title">Weekly report <em>for Envision Builders</em>.</div>
+        <div class="hunt-title">Weekly report <em>for Alkan Construction Assistant</em>.</div>
       </div>
       <div class="hunt-actions">
         <button class="btn-ghost" onclick="copyReportText()">📋 Copy report (plain text)</button>
@@ -1372,21 +1830,21 @@ button { font-family: inherit; }
 
 <script>
 // ═══════════════════════════════════════════════════════════════════════════
-// CONFIG — ALKAN LEAD HUNTER v9-EB  ·  ENVISION BUILDERS EDITION
+// CONFIG — ALKAN LEAD HUNTER v13
 // ═══════════════════════════════════════════════════════════════════════════
 const CLIENT = {
-  name: 'Envision Builders LLC',
-  contact: 'Tim Kairez',
+  name: 'Alkan Construction Assistant',
+  contact: 'Andres Alkan',
   bd: 'Ashley Kairez',
   location: 'Bonney Lake, WA',
-  email: 'tim@envision-builds.com',
-  phone: '425.757.4591',
+  email: 'alkanassistant@gmail.com',
+  phone: '+1 206 640 6034',
   ubi: '605 908 777',
   license: 'ENVISBI752MC'
 };
 
 const STORAGE_KEY = 'alkan_eb_v9_leads';
-const SEED_KEY = 'eb_seeded_v9';
+const SEED_KEY = 'alkan_seeded_v13';
 
 // TARGET PROJECT CATEGORIES — what Tim actually wants
 // (replaces TRADE_KEYWORDS from v8 — trades are noise for Tim)
@@ -1434,55 +1892,6 @@ const PROJECT_CATEGORIES = [
     keys: ['affordable housing','affordable',' lihtc','low-income housing','workforce housing','section 8','public housing','sha ','seattle housing authority','king county housing authority','housing authority','wshfc','tax credit'],
     sweet_spot: [1000000, 50000000],
     priority: 'STRATEGIC'
-  },
-  {
-    code: 'roofing',
-    label: 'Roofing',
-    keys: ['roofing','re-roof','reroof','roof replacement','roof system','new roof','roof assembly','shingle','metal roof','flat roof','membrane roof'],
-    sweet_spot: [15000, 300000],
-    priority: 'TRADE'
-  },
-  {
-    code: 'concrete',
-    label: 'Concrete / Flatwork',
-    keys: ['concrete','flatwork','slab','foundation concrete','concrete pour','retaining wall','concrete driveway','concrete sidewalk','tilt-up','poured concrete'],
-    sweet_spot: [20000, 500000],
-    priority: 'TRADE'
-  },
-  {
-    code: 'framing',
-    label: 'Framing / Structural',
-    keys: ['framing','structural framing','wood frame','steel frame','addition framing','room addition','second story addition','bump out','structural addition'],
-    sweet_spot: [30000, 800000],
-    priority: 'TRADE'
-  },
-  {
-    code: 'landscaping',
-    label: 'Landscaping / Site Work',
-    keys: ['landscaping','landscape','site work','grading','drainage','hardscape','retaining','irrigation','site improvement','earthwork','excavation'],
-    sweet_spot: [15000, 400000],
-    priority: 'TRADE'
-  },
-  {
-    code: 'interior_finish',
-    label: 'Interior Finish (Drywall/Paint/Floor)',
-    keys: ['drywall','sheetrock','gypsum board','interior finish','painting','interior paint','flooring','hardwood floor','tile floor','lvp','luxury vinyl','carpet','finish carpentry','millwork','trim carpentry','wainscot','crown molding','cabinetry','cabinet install'],
-    sweet_spot: [10000, 250000],
-    priority: 'TRADE'
-  },
-  {
-    code: 'metalwork',
-    label: 'Metal / Steel Fabrication',
-    keys: ['metal fabrication','structural steel','steel erection','metal stud','light gauge','metal panel','steel structure','miscellaneous metals','metal framing','ornamental iron'],
-    sweet_spot: [25000, 1000000],
-    priority: 'TRADE'
-  },
-  {
-    code: 'remodel',
-    label: 'Remodel / Renovation',
-    keys: ['remodel','renovation','gut rehab','interior remodel','kitchen remodel','bathroom remodel','full remodel','major renovation','interior renovation','rehab','alteration'],
-    sweet_spot: [50000, 1500000],
-    priority: 'HIGH'
   }
 ];
 
@@ -1497,7 +1906,7 @@ const EXCLUSION_KEYWORDS = [
   // Public works (Tim said NO except affordable housing — handled separately)
   'street improvement','sidewalk repair','road improvement','stormwater pipe',
   'sewer main','water main',
-  // Single-trade jobs (not Tim's profile)
+  // Single-trade jobs (not Alkan's profile)
   'water heater','furnace replacement','hvac replacement','panel upgrade',
   // Owner-occupied small remodels
   'kitchen remodel','bathroom remodel','master bath','master bedroom addition',
@@ -1554,7 +1963,7 @@ async function save() {
   try {
     const rows = LEADS.map(l => ({
       id: l.id,
-      client_id: 'envision_builders',
+      client_id: 'alkan_assistant',
       data: l,
       updated_at: new Date().toISOString()
     }));
@@ -1570,7 +1979,7 @@ async function load() {
     const { data, error } = await _supabase
       .from('leads')
       .select('data')
-      .eq('client_id', 'envision_builders')
+      .eq('client_id', 'alkan_assistant')
       .order('updated_at', { ascending: false });
 
     if (error || !data?.length) {
@@ -1675,7 +2084,7 @@ function classifyStage(permitStatus, issuedDate) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SCORING — INVERTED FOR ENVISION BUILDERS
+// SCORING — INVERTED FOR ALKAN CONSTRUCTION ASSISTANT
 // Pre-permit & no-GC = BEST. Issued + GC of record = WORST.
 // ═══════════════════════════════════════════════════════════════════════════
 function scoreLead(lead) {
@@ -1695,7 +2104,7 @@ function scoreLead(lead) {
     return lead;
   }
 
-  // 1) CATEGORY MATCH — must match Tim's target project types
+  // 1) CATEGORY MATCH — must match Alkan's target project types
   if (lead.category) {
     score += 18;
     reasons.push(`+18 ${lead.category.label} (target category)`);
@@ -1713,7 +2122,7 @@ function scoreLead(lead) {
     } else if (lead.unit_count >= 5 && lead.unit_count <= 30) {
       score += 10;
       reasons.push(`+10 multifamily ${lead.unit_count} units (sweet spot)`);
-      why.push(`${lead.unit_count}-unit multifamily — fits Tim's profile exactly`);
+      why.push(`${lead.unit_count}-unit multifamily — fits Alkan's profile exactly`);
     }
   }
 
@@ -1733,7 +2142,7 @@ function scoreLead(lead) {
     }
   }
 
-  // 4) GC OF RECORD — Tim's #1 question: "do they already have a contractor?"
+  // 4) GC OF RECORD — Alkan's #1 question: "do they already have a contractor?"
   if (!lead.contractor_name || lead.contractor_name === '' || lead.contractor_name === '— No GC of Record') {
     score += 22;
     reasons.push('+22 no GC of record');
@@ -1771,7 +2180,7 @@ function scoreLead(lead) {
       if (lead.value >= min && lead.value <= max) {
         score += 10;
         reasons.push('+10 value in sweet spot');
-        why.push(`${fmtMoney(lead.value)} — Tim's sweet spot`);
+        why.push(`${fmtMoney(lead.value)} — Alkan's sweet spot`);
       } else if (lead.value < min * 0.5) {
         score -= 8;
         reasons.push('-8 value below threshold');
@@ -1805,8 +2214,8 @@ function scoreLead(lead) {
   lead.score = Math.max(0, Math.min(100, Math.round(score)));
   lead.score_reasons = reasons;
   lead.why_relevant = why.slice(0, 4);
-  lead.intent_level = lead.score >= 65 ? 'hot' : lead.score >= 45 ? 'warm' : 'cold';
-  lead.ready_for_handoff = lead.score >= 60 && lead.fully_enriched && lead.no_gc;
+  lead.intent_level = lead.score >= 75 ? 'hot' : lead.score >= 55 ? 'warm' : 'cold';
+  lead.ready_for_handoff = lead.score >= 70 && lead.fully_enriched && lead.no_gc;
 
   return lead;
 }
@@ -1884,7 +2293,9 @@ async function fetchDirect(url, opts = {}) {
 }
 
 function bumpCounter(label, n) {
-  const ids = { Seattle: 'ctSeattle', KC: 'ctKC', PC: 'ctPC', Sno: 'ctSno' };
+  const ids = { Seattle: 'ctSeattle', KC: 'ctKC', PC: 'ctPC', Sno: 'ctSno',
+                MBP: 'ctMBP', Clark: 'ctClark', Spokane: 'ctSpokane',
+                Thurston: 'ctThurston', Whatcom: 'ctWhatcom', Kitsap: 'ctKitsap' };
   const id = ids[label];
   if (id) {
     const el = document.getElementById(id);
@@ -1902,10 +2313,12 @@ function logStatus(msg, state) {
   }
 }
 
-// ── Actor helper — normalize one permit from /hunt response into a lead ───────
+// ── Actor helper — normaliza un permit del actor /hunt en un lead ────────────
 function actorPermitToLead(p) {
   const catCode = p.category;
-  const category = catCode ? (PROJECT_CATEGORIES.find(c => c.code === catCode) || { code: catCode, label: catCode }) : null;
+  const category = catCode
+    ? (PROJECT_CATEGORIES.find(c => c.code === catCode) || { code: catCode, label: catCode })
+    : null;
   if (!category) return null;
   const fullText = `${p.description || ''} ${p.permit_type || ''}`;
   if (isExcluded(fullText)) return null;
@@ -1930,114 +2343,134 @@ function actorPermitToLead(p) {
     posted_ts: p.application_date ? new Date(p.application_date).getTime()
              : p.issue_date       ? new Date(p.issue_date).getTime()
              : Date.now(),
-    issued_date: p.issue_date || null,
+    issued_date:      p.issue_date || null,
     application_date: p.application_date || null,
     url: p.permit_number
       ? `https://cosaccela.seattle.gov/Portal/Cap/CapDetail.aspx?Module=DPD&capID1=${p.permit_number}`
       : '',
-    contractor_name: p.contractor || '',
-    no_gc: p.no_gc ?? !p.contractor,
-    gc_license_url: p.gc_license_url || null,
-    owner_name:    p.owner_name  || '',
-    owner_phone:   p.owner_phone || '',
-    owner_email:   p.owner_email || '',
-    architect_name: '',
-    owners_rep: '',
-    state: 'new',
-    timeline: [],
-    captured_ts: now(),
-    notes: '',
-    // Actor scoring fields (if enriched)
-    actor_score: p.scoring?.score ?? null,
-    actor_urgency: p.scoring?.urgency ?? null,
-    actor_summary: p.scoring?.executive_summary ?? null,
+    contractor_name:  p.contractor || '',
+    no_gc:            p.no_gc ?? !p.contractor,
+    gc_license_url:   p.gc_license_url || null,
+    owner_name:       p.owner_name  || '',
+    owner_phone:      p.owner_phone || '',
+    owner_email:      p.owner_email || '',
+    architect_name: '', owners_rep: '',
+    state: 'new', timeline: [], captured_ts: now(), notes: '',
+    fully_enriched: !!(p.owner_phone || p.owner_email),
+    actor_score:            p.scoring?.score           ?? null,
+    actor_urgency:          p.scoring?.urgency         ?? null,
+    actor_summary:          p.scoring?.executive_summary ?? null,
     actor_outreach_subject: p.scoring?.outreach_subject ?? null,
     actor_outreach_draft:   p.scoring?.outreach_draft   ?? null,
-    fully_enriched: !!(p.owner_phone || p.owner_email),
   };
   scoreLead(lead);
   return lead;
 }
 
-// Seattle DCI — calls actor /hunt endpoint (primary), falls back to direct Open Data API
+// Seattle DCI — actor /hunt (primary) → data.seattle.gov directo (fallback)
+// Dataset: data.seattle.gov/resource/76t5-zqzr.json (Building Permits, active 2026)
+// IMPORTANT: this dataset uses SMASHED LOWERCASE field names (no underscores).
+// Verified live field names:
+//   permitnum, permitclass, permitclassmapped, permittypemapped, permittypedesc,
+//   description, housingunits, housingunitsadded, estprojectcost,
+//   applieddate, issueddate, statuscurrent, originaladdress1, originalcity,
+//   originalzip, contractorcompanyname, link ({url: '...'})
 async function scrapeSeattleDCI() {
   const out = [];
   let rawCount = 0;
+  let proxyUsed = '';
   let categoryMatches = 0;
   let exclusionDrops = 0;
 
-  // ── Try actor first ──────────────────────────────────────────────────────
-  if (ACTOR_URL && ACTOR_API_KEY && ACTOR_API_KEY !== 'changeme') {
+  // ── Intenta actor primero ────────────────────────────────────────────────
+  if (ACTOR_URL && ACTOR_API_KEY) {
     try {
-      logStatus('Seattle DCI · connecting to actor (Render)...', 'running');
-      const actorEndpoint = `${ACTOR_URL}/hunt?days=180&limit=500&min_value=0`;
-      const resp = await fetchWithTimeout(actorEndpoint, {
-        headers: { 'x-api-key': ACTOR_API_KEY, 'Accept': 'application/json' },
-      }, 30000);
-
+      logStatus('Seattle DCI · conectando al actor (Render)...', 'running');
+      const resp = await fetchWithTimeout(
+        `${ACTOR_URL}/hunt?days=180&limit=500&min_value=0`,
+        { headers: { 'x-api-key': ACTOR_API_KEY, 'Accept': 'application/json' } },
+        30000
+      );
       if (resp.ok) {
         const data = await resp.json();
         rawCount = data.total_raw || 0;
-        logStatus(`Seattle DCI · actor returned ${data.count} permits, mapping...`, 'running');
-
+        logStatus(`Seattle DCI · actor devolvió ${data.count} permisos, procesando...`, 'running');
         for (const p of (data.permits || [])) {
           if (STOPFLAG) break;
           const lead = actorPermitToLead(p);
           if (lead) { categoryMatches++; out.push(lead); }
           else exclusionDrops++;
         }
-
-        logStatus(`Seattle DCI · ${out.length} leads from actor (${rawCount} raw, ${exclusionDrops} excluded)`, 'ok');
-        return out;
-      } else {
-        console.warn('Actor /hunt returned', resp.status, '— falling back to direct API');
+        bumpCounter('Seattle', out.length);
+        return {
+          leads: out,
+          summary: `Seattle DCI (actor): ${rawCount} raw → ${categoryMatches} categorizados → ${out.length} leads (${exclusionDrops} excluidos)`
+        };
       }
+      console.warn('Actor /hunt retornó', resp.status, '— usando fallback directo');
     } catch (e) {
-      console.warn('Actor /hunt failed:', e.message, '— falling back to direct API');
+      console.warn('Actor /hunt falló:', e.message, '— usando fallback directo');
     }
   }
 
-  // ── Fallback: direct Open Data API ──────────────────────────────────────
-  let proxyUsed = '';
+  // ── Fallback: Open Data API directo ─────────────────────────────────────
   try {
-    logStatus('Seattle DCI · connecting to data.seattle.gov (direct)...', 'running');
-    const cutoff = new Date(Date.now() - 180*86400000).toISOString().slice(0,10);
-    const url = `https://data.seattle.gov/resource/76t5-zqzr.json?$where=applieddate>'${cutoff}T00:00:00'&$limit=500`;
+    logStatus('Seattle DCI · connecting to data.seattle.gov...', 'running');
+    const cutoff = new Date(Date.now() - 90*86400000).toISOString().slice(0,10);
+    const url = `https://data.seattle.gov/resource/76t5-zqzr.json?$where=applieddate>'${cutoff}T00:00:00'&$limit=200`;
     const r = await fetchDirect(url, { headers: { 'Accept': 'application/json' } });
     proxyUsed = r._proxy || 'direct';
     const rows = await r.json();
-    if (!Array.isArray(rows)) throw new Error(rows?.message || 'API returned non-array');
+    // Defensive: ensure rows is an array (some proxies wrap errors as objects)
+    if (!Array.isArray(rows)) {
+      const errMsg = rows && rows.message ? rows.message : 'API returned non-array (possible error response)';
+      throw new Error(errMsg);
+    }
     rawCount = rows.length;
     logStatus(`Seattle DCI · ${rawCount} permits fetched via ${proxyUsed}, filtering...`, 'running');
-
     for (const p of rows) {
       if (STOPFLAG) break;
+      // Use SMASHED LOWERCASE field names — verified against live API
       const desc = p.description || '';
-      const fullText = [desc, p.permittypedesc, p.permittypemapped, p.permitclass, p.permitclassmapped].join(' ');
+      const permitTypeDesc = p.permittypedesc || '';
+      const permitTypeMapped = p.permittypemapped || '';
+      const permitClass = p.permitclass || '';
+      const permitClassMapped = p.permitclassmapped || '';
+      const fullText = [desc, permitTypeDesc, permitTypeMapped, permitClass, permitClassMapped].join(' ');
+
       const category = matchCategory(fullText);
       if (!category) continue;
       categoryMatches++;
       if (isExcluded(fullText)) { exclusionDrops++; continue; }
 
+      const unitCount = (p.housingunitsadded ? parseInt(p.housingunitsadded, 10) : null) ||
+                        (p.housingunits ? parseInt(p.housingunits, 10) : null) ||
+                        extractUnitCount(fullText);
+
       const stage = classifyStage(p.statuscurrent, p.issueddate);
-      const permitUrl = (p.link?.url) || `https://cosaccela.seattle.gov/Portal/Cap/CapDetail.aspx?Module=DPD&capID1=${p.permitnum || ''}`;
+      // Link is an object {url: '...'} in this dataset, not a string
+      const permitUrl = (p.link && p.link.url) ? p.link.url :
+                       `https://cosaccela.seattle.gov/Portal/Cap/CapDetail.aspx?Module=DPD&capID1=${p.permitnum || ''}`;
+
       const lead = {
         id: 'sea_' + (p.permitnum || uid()),
         source: 'seattle_dci',
         source_label: 'Seattle DCI',
         title: `${category.label} — ${(p.originaladdress1 || '').slice(0,60)}`,
         description: desc.slice(0, 800),
-        permit_type: p.permittypedesc || p.permittypemapped,
+        permit_type: permitTypeDesc || permitTypeMapped,
         permit_number: p.permitnum,
         permit_status_raw: p.statuscurrent || '',
-        stage, category,
-        unit_count: extractUnitCount(fullText),
+        stage,
+        category,
+        unit_count: unitCount,
         address: p.originaladdress1 || '',
         city: p.originalcity || 'Seattle',
         zip: p.originalzip || '',
         county: 'KING',
         value: parseFloat(p.estprojectcost || 0) || null,
-        posted_ts: p.applieddate ? new Date(p.applieddate).getTime() : Date.now(),
+        posted_ts: p.applieddate ? new Date(p.applieddate).getTime() :
+                   (p.issueddate ? new Date(p.issueddate).getTime() : Date.now()),
         issued_date: p.issueddate,
         application_date: p.applieddate,
         url: permitUrl,
@@ -2046,15 +2479,21 @@ async function scrapeSeattleDCI() {
         gc_license_url: p.contractorcompanyname
           ? `https://secure.lni.wa.gov/verify/Results.aspx?NAME=${encodeURIComponent(p.contractorcompanyname)}&PHRASE=false&DTYPE=ALL`
           : null,
-        owner_name: '', owner_phone: '', owner_email: '',
-        architect_name: '', owners_rep: '',
-        state: 'new', timeline: [], captured_ts: now(), notes: '',
+        owner_name: '',  // Seattle dataset does NOT expose owner — needs Parcel lookup
+        owner_phone: '',
+        owner_email: '',
+        architect_name: '',
+        owners_rep: '',
+        state: 'new',
+        timeline: [],
+        captured_ts: now(),
+        notes: ''
       };
       scoreLead(lead);
       out.push(lead);
     }
   } catch(e) {
-    console.error('Seattle DCI direct failed:', e);
+    console.error('Seattle DCI failed:', e);
     const errMsg = e.message || e.name || 'unknown error';
     const isTimeout = errMsg.toLowerCase().includes('abort') || errMsg.toLowerCase().includes('timeout');
     return {
@@ -2081,7 +2520,7 @@ async function scrapeKingCounty() {
   };
 }
 
-// Pierce County — Tim's home county. Uses Accela ACA, no public JSON API.
+// Pierce County — Alkan's home county. Uses Accela ACA, no public JSON API.
 async function scrapePierceCounty() {
   await sleep(200);
   return {
@@ -2094,10 +2533,10 @@ async function scrapePierceCounty() {
 async function scrapeSnohomish() {
   const out = [];
 
-  // ── Try actor /hunt/snohomish first ─────────────────────────────────────
-  if (ACTOR_URL && ACTOR_API_KEY && ACTOR_API_KEY !== 'changeme') {
+  // ── Actor primero ────────────────────────────────────────────────────────
+  if (ACTOR_URL && ACTOR_API_KEY) {
     try {
-      logStatus('Snohomish · connecting to actor...', 'running');
+      logStatus('Snohomish · conectando al actor...', 'running');
       const resp = await fetchWithTimeout(
         `${ACTOR_URL}/hunt/snohomish?days=180&limit=300`,
         { headers: { 'x-api-key': ACTOR_API_KEY, 'Accept': 'application/json' } },
@@ -2110,27 +2549,27 @@ async function scrapeSnohomish() {
           const lead = actorPermitToLead(p);
           if (lead) out.push(lead);
         }
-        logStatus(`Snohomish · ${out.length} leads from actor`, 'ok');
-        return { leads: out, summary: `Snohomish: ${out.length} leads via actor` };
+        bumpCounter('Snohomish', out.length);
+        return { leads: out, summary: `Snohomish (actor): ${out.length} leads` };
       }
     } catch (e) {
-      console.warn('Actor /hunt/snohomish failed:', e.message, '— falling back to Supabase');
+      console.warn('Actor /hunt/snohomish falló:', e.message, '— usando Supabase fallback');
     }
   }
 
-  // ── Fallback: Supabase direct ────────────────────────────────────────────
+  // ── Fallback: Supabase directo ───────────────────────────────────────────
   try {
-    logStatus('Snohomish · loading leads from Supabase...', 'running');
+    logStatus('Snohomish · cargando desde Supabase...', 'running');
     const { data, error } = await _supabase
       .from('leads')
       .select('*')
       .eq('client_id', 'alkan')
-      .or('jurisdiction.ilike.%snohomish%,county.ilike.%snohomish%,notes.ilike.%snohomish%')
+      .or('jurisdiction.ilike.%snohomish%,county.ilike.%snohomish%')
       .limit(300);
 
     if (error) throw new Error(error.message);
     if (!data || !data.length) {
-      return { leads: [], summary: 'Snohomish: 0 leads in database (import CSV or configure actor)' };
+      return { leads: [], summary: 'Snohomish: 0 leads en base de datos (configura el actor o importa CSV)' };
     }
 
     for (const row of data) {
@@ -2139,30 +2578,27 @@ async function scrapeSnohomish() {
       const category = matchCategory(fullText) || PROJECT_CATEGORIES.find(c => c.code === 'sfr');
       const lead = {
         id: 'sno_' + (row.id || uid()),
-        source: 'snohomish_csv',
-        source_label: 'Snohomish County',
-        title: `${category ? category.label : 'Permit'} — ${(row.address || row.full_address || '').slice(0,60)}`,
+        source: 'snohomish_csv', source_label: 'Snohomish County',
+        title: `${category ? category.label : 'Permit'} — ${(row.address || '').slice(0, 60)}`,
         description: desc.slice(0, 800),
         permit_type: row.permit_type || 'Building',
         permit_number: row.permit_number || null,
         permit_status_raw: row.status || 'Issued',
-        stage: 'issued_lt_30d',
-        category, unit_count: null,
+        stage: 'issued_lt_30d', category, unit_count: null,
         address: row.address || row.full_address || '',
-        city: row.city || '',
-        zip: row.zip || '',
-        county: 'SNOHOMISH',
-        value: parseFloat(row.valuation || row.project_value || 0) || null,
+        city: row.city || '', zip: row.zip || '', county: 'SNOHOMISH',
+        value: parseFloat(row.valuation || 0) || null,
         posted_ts: row.issue_date ? new Date(row.issue_date).getTime() : Date.now(),
-        issued_date: row.issue_date || null,
-        application_date: null,
+        issued_date: row.issue_date || null, application_date: null,
         url: row.source_url || '',
         contractor_name: row.contractor || '',
-        owner_name: row.owner_name || row.name || '',
-        owner_phone: row.phone || '',
-        owner_email: row.email || '',
-        architect_name: '', owners_rep: '',
         no_gc: !row.contractor,
+        gc_license_url: row.contractor
+          ? `https://secure.lni.wa.gov/verify/Results.aspx?NAME=${encodeURIComponent(row.contractor)}&PHRASE=false&DTYPE=ALL`
+          : null,
+        owner_name: row.owner_name || row.name || '',
+        owner_phone: row.phone || '', owner_email: row.email || '',
+        architect_name: '', owners_rep: '',
         fully_enriched: !!(row.phone || row.email),
         state: 'new', timeline: [], captured_ts: now(), notes: ''
       };
@@ -2170,10 +2606,283 @@ async function scrapeSnohomish() {
       if (!lead.is_excluded) out.push(lead);
     }
   } catch(e) {
-    console.error('Snohomish fallback failed:', e);
     return { leads: [], summary: `Snohomish: ❌ ${e.message}` };
   }
-  return { leads: out, summary: `Snohomish: ${out.length} leads from database` };
+  bumpCounter('Snohomish', out.length);
+  return { leads: out, summary: `Snohomish (Supabase): ${out.length} leads` };
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// EXPANDED WA COVERAGE — added v11. These jurisdictions have NO public JSON
+// API (Accela ACA, Tyler EnerGov, and MyBuildingPermit are session/CSRF
+// portals). They require the server-side Alkan Actor (Apify/Playwright) to
+// scrape the front + pull attachments from the document library. Until that
+// backend is live, each returns an honest "pending" summary and exposes a
+// direct portal deep-link via PORTAL_LINKS so the team can work them manually.
+// ─────────────────────────────────────────────────────────────────────────
+
+// MyBuildingPermit.com — unified portal for 15+ King/Snohomish cities
+// (Bellevue · Redmond · Kirkland · Renton · Kent · Bothell · Issaquah +more).
+// One adapter unlocks all of them, but it's a CSRF/session portal → backend.
+async function scrapeMyBuildingPermit() {
+  await sleep(200);
+  return {
+    leads: [],
+    summary: 'MyBuildingPermit: ⏸ pending (unified portal — 15+ cities, needs Actor adapter)'
+  };
+}
+
+// Clark County (Vancouver WA) — Accela CSS portal.
+async function scrapeClarkCounty() {
+  await sleep(200);
+  return {
+    leads: [],
+    summary: 'Clark County: ⏸ pending (Accela CSS — needs Actor adapter)'
+  };
+}
+
+// Spokane (city + county) — Accela ACA, eastern WA anchor market.
+async function scrapeSpokane() {
+  await sleep(200);
+  return {
+    leads: [],
+    summary: 'Spokane: ⏸ pending (Accela ACA — needs Actor adapter)'
+  };
+}
+
+// Thurston County (Olympia area) — Accela.
+async function scrapeThurston() {
+  await sleep(200);
+  return {
+    leads: [],
+    summary: 'Thurston County: ⏸ pending (Accela — needs Actor adapter)'
+  };
+}
+
+// Whatcom + Skagit — share the same Tyler EnerGov platform (one adapter = both).
+async function scrapeWhatcomSkagit() {
+  await sleep(200);
+  return {
+    leads: [],
+    summary: 'Whatcom/Skagit: ⏸ pending (Tyler EnerGov — one adapter covers both)'
+  };
+}
+
+// Kitsap County (Bremerton) — Accela. Alvarez Landscaping's home turf.
+async function scrapeKitsap() {
+  await sleep(200);
+  return {
+    leads: [],
+    summary: 'Kitsap County: ⏸ pending (Accela — needs Actor adapter)'
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DOC EXTRACTOR (EDMS) — Claude reads permit PDFs and pulls owner contacts
+// ═══════════════════════════════════════════════════════════════════════════
+let EDMS_FILE_B64 = null;     // base64 of uploaded PDF/image
+let EDMS_FILE_MEDIA = null;   // media type
+let EDMS_LAST_RESULT = null;  // last parsed extraction (for "add to pipeline")
+
+function fileToBase64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result.split(',')[1]);
+    r.onerror = () => rej(new Error('File read failed'));
+    r.readAsDataURL(file);
+  });
+}
+
+async function handleEdmsFile(file) {
+  if (!file) return;
+  EDMS_FILE_MEDIA = file.type || 'application/pdf';
+  EDMS_FILE_B64 = await fileToBase64(file);
+  const fn = document.getElementById('edmsFilename');
+  if (fn) fn.textContent = '✓ ' + file.name + ' (' + Math.round(file.size/1024) + ' KB)';
+}
+
+function wireEdms() {
+  const drop = document.getElementById('edmsDrop');
+  const input = document.getElementById('edmsFile');
+  if (!drop || !input) return;
+  drop.addEventListener('click', () => input.click());
+  input.addEventListener('change', e => { if (e.target.files[0]) handleEdmsFile(e.target.files[0]); });
+  ['dragover','dragenter'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('dragover'); }));
+  ['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('dragover'); }));
+  drop.addEventListener('drop', e => { if (e.dataTransfer.files[0]) handleEdmsFile(e.dataTransfer.files[0]); });
+}
+
+const EDMS_SYSTEM = `You extract contact and project data from Washington State construction permit documents (signed applications, SEPA checklists, financial-responsibility forms, plan cover sheets). Respond with ONLY a valid JSON object, no preamble, no markdown fences. Use this exact schema, with null for any field you cannot find:
+{
+  "owner_name": string|null,
+  "owner_phone": string|null,
+  "owner_email": string|null,
+  "owner_mailing_address": string|null,
+  "applicant_type": "owner"|"owner-builder"|"contractor"|"architect"|"agent"|null,
+  "architect_name": string|null,
+  "architect_firm": string|null,
+  "owners_rep": string|null,
+  "contractor_name": string|null,
+  "has_gc_assigned": boolean,
+  "project_address": string|null,
+  "parcel_number": string|null,
+  "project_description": string|null,
+  "estimated_value": number|null,
+  "confidence": "high"|"medium"|"low",
+  "notes": string|null
+}
+has_gc_assigned is true ONLY if a licensed general contractor company is clearly named as the builder of record. An owner acting as owner-builder, or a blank contractor field, means has_gc_assigned = false. Be conservative.`;
+
+async function runEdmsExtract() {
+  const btn = document.getElementById('edmsExtractBtn');
+  const resEl = document.getElementById('edmsResult');
+  const pasteText = (document.getElementById('edmsPasteText').value || '').trim();
+
+  if (!EDMS_FILE_B64 && !pasteText) {
+    alert('Drop a PDF / image, or paste document text first.');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="edms-spinner"></span> Claude is reading the document...';
+  resEl.innerHTML = '<div class="edms-result-empty"><span class="edms-spinner"></span> Extracting contacts — this takes a few seconds.</div>';
+
+  // Build the content blocks
+  const content = [];
+  if (EDMS_FILE_B64) {
+    if (EDMS_FILE_MEDIA === 'application/pdf') {
+      content.push({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: EDMS_FILE_B64 } });
+    } else {
+      content.push({ type: 'image', source: { type: 'base64', media_type: EDMS_FILE_MEDIA, data: EDMS_FILE_B64 } });
+    }
+    content.push({ type: 'text', text: 'Extract all owner/applicant/architect/contractor contact data and the GC status from this permit document. Return only the JSON object.' });
+  } else {
+    content.push({ type: 'text', text: 'Extract all owner/applicant/architect/contractor contact data and the GC status from this permit document text. Return only the JSON object.\n\nDOCUMENT TEXT:\n' + pasteText });
+  }
+
+  try {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: EDMS_SYSTEM,
+        messages: [{ role: 'user', content }]
+      })
+    });
+    const data = await r.json();
+    const text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('\n');
+    const clean = text.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(clean);
+    EDMS_LAST_RESULT = parsed;
+    renderEdmsResult(parsed);
+  } catch (e) {
+    console.error('EDMS extract error:', e);
+    resEl.innerHTML = `<div class="edms-result-empty">❌ Extraction failed: ${escapeHtml(e.message || 'unknown error')}<br><br>If this was a large PDF, try the signed application page only, or paste the text instead.</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '✦ Extract with Claude';
+  }
+}
+
+function renderEdmsResult(d) {
+  const resEl = document.getElementById('edmsResult');
+  const fieldRow = (label, val) =>
+    `<div class="edms-field"><div class="edms-field-label">${label}</div>` +
+    `<div class="edms-field-value ${val ? '' : 'empty'}">${val ? escapeHtml(String(val)) : '— not found —'}</div></div>`;
+
+  const gcBanner = d.has_gc_assigned
+    ? `<div class="edms-gc-banner has-gc">⚠ GC already named: ${escapeHtml(d.contractor_name || 'a contractor')} — later-stage, lower priority for Tim.</div>`
+    : `<div class="edms-gc-banner no-gc">✓ NO GC of record — this is the early window. Reach the owner now.</div>`;
+
+  resEl.innerHTML = gcBanner +
+    fieldRow('Owner', d.owner_name) +
+    fieldRow('Phone', d.owner_phone) +
+    fieldRow('Email', d.owner_email) +
+    fieldRow('Mailing', d.owner_mailing_address) +
+    fieldRow('Applicant type', d.applicant_type) +
+    fieldRow('Architect', [d.architect_name, d.architect_firm].filter(Boolean).join(' · ')) +
+    fieldRow("Owner's rep", d.owners_rep) +
+    fieldRow('Contractor', d.contractor_name) +
+    fieldRow('Address', d.project_address) +
+    fieldRow('Parcel #', d.parcel_number) +
+    fieldRow('Est. value', d.estimated_value ? fmtMoney(d.estimated_value) : null) +
+    fieldRow('Project', d.project_description) +
+    `<div class="edms-confidence">Claude confidence: <b>${escapeHtml(d.confidence || 'unknown')}</b>${d.notes ? ' · ' + escapeHtml(d.notes) : ''}</div>` +
+    `<div class="edms-action-row">
+       <button class="dr-btn primary" onclick="edmsAddToPipeline()">＋ Add as new lead</button>
+       <button class="dr-btn" onclick="edmsMergeIntoLead()">⤵ Merge into matching permit</button>
+     </div>`;
+}
+
+function edmsToLead(d) {
+  const cat = (d.project_description ? matchCategory(d.project_description) : null)
+            || PROJECT_CATEGORIES.find(c => c.code === 'sfr');
+  const lead = {
+    id: 'edms_' + uid(),
+    source: 'edms_extract', source_label: 'EDMS Doc Extract',
+    title: `${cat.label} — ${(d.project_address || 'address unknown').slice(0,60)}`,
+    description: d.project_description || '',
+    permit_type: cat.label,
+    permit_number: (document.getElementById('edmsLinkPermit').value || '').trim(),
+    permit_status_raw: 'Application (from document)',
+    stage: 'application',
+    category: cat,
+    unit_count: extractUnitCount(d.project_description || ''),
+    address: d.project_address || '', city: '', zip: '', county: 'KING',
+    value: d.estimated_value || null,
+    posted_ts: now(), application_date: null, issued_date: null,
+    contractor_name: d.has_gc_assigned ? (d.contractor_name || '') : '',
+    owner_name: d.owner_name || '',
+    owner_phone: d.owner_phone || '',
+    owner_email: d.owner_email || '',
+    architect_name: [d.architect_name, d.architect_firm].filter(Boolean).join(' · '),
+    owners_rep: d.owners_rep || '',
+    parcel_number: d.parcel_number || '',
+    state: 'new', timeline: [], captured_ts: now(),
+    notes: d.notes ? ('Doc extract: ' + d.notes) : ''
+  };
+  scoreLead(lead);
+  return lead;
+}
+
+function edmsAddToPipeline() {
+  if (!EDMS_LAST_RESULT) return;
+  const lead = edmsToLead(EDMS_LAST_RESULT);
+  LEADS.push(lead);
+  save(); rerender();
+  logStatus(`✓ Added enriched lead from document: ${lead.owner_name || lead.address || lead.id}`, 'idle');
+  alert('Added to Hunt as a new owner-verified lead. Check the Hunt tab.');
+}
+
+function edmsMergeIntoLead() {
+  if (!EDMS_LAST_RESULT) return;
+  const d = EDMS_LAST_RESULT;
+  const permitNum = (document.getElementById('edmsLinkPermit').value || '').trim();
+  let target = null;
+  if (permitNum) {
+    target = LEADS.find(l => (l.permit_number || '').replace(/-/g,'').toLowerCase() === permitNum.replace(/-/g,'').toLowerCase());
+  }
+  if (!target && d.project_address) {
+    const a = d.project_address.split(',')[0].trim().toLowerCase();
+    target = LEADS.find(l => (l.address || '').toLowerCase().includes(a.slice(0, 12)));
+  }
+  if (!target) {
+    alert('No matching permit found by number or address. Use "Add as new lead" instead.');
+    return;
+  }
+  if (d.owner_name && !target.owner_name) target.owner_name = d.owner_name;
+  if (d.owner_phone) target.owner_phone = d.owner_phone;
+  if (d.owner_email) target.owner_email = d.owner_email;
+  if (d.architect_name && !target.architect_name) target.architect_name = [d.architect_name, d.architect_firm].filter(Boolean).join(' · ');
+  if (d.owners_rep && !target.owners_rep) target.owners_rep = d.owners_rep;
+  if (d.parcel_number) target.parcel_number = d.parcel_number;
+  if (d.has_gc_assigned && d.contractor_name) target.contractor_name = d.contractor_name;
+  scoreLead(target);
+  save(); rerender();
+  logStatus(`✓ Merged document data into ${target.title}`, 'idle');
+  alert('Merged into matching permit. Its enrichment + score have been updated.');
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -2200,7 +2909,7 @@ async function startHunt() {
   }
 
   // Reset counters
-  ['ctSeattle','ctKC','ctPC','ctSno'].forEach(id => {
+  ['ctSeattle','ctKC','ctPC','ctSno','ctMBP','ctClark','ctSpokane','ctThurston','ctWhatcom','ctKitsap'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.textContent = '0';
   });
@@ -2225,6 +2934,12 @@ async function startHunt() {
     if (sources.includes('king_county') && !STOPFLAG) mergeResult(await scrapeKingCounty(), 'KC');
     if (sources.includes('pierce_county') && !STOPFLAG) mergeResult(await scrapePierceCounty(), 'PC');
     if (sources.includes('snohomish_county') && !STOPFLAG) mergeResult(await scrapeSnohomish(), 'Sno');
+    if (sources.includes('mybuildingpermit') && !STOPFLAG) mergeResult(await scrapeMyBuildingPermit(), 'MBP');
+    if (sources.includes('clark_county') && !STOPFLAG) mergeResult(await scrapeClarkCounty(), 'Clark');
+    if (sources.includes('spokane') && !STOPFLAG) mergeResult(await scrapeSpokane(), 'Spokane');
+    if (sources.includes('thurston_county') && !STOPFLAG) mergeResult(await scrapeThurston(), 'Thurston');
+    if (sources.includes('whatcom_skagit') && !STOPFLAG) mergeResult(await scrapeWhatcomSkagit(), 'Whatcom');
+    if (sources.includes('kitsap_county') && !STOPFLAG) mergeResult(await scrapeKitsap(), 'Kitsap');
   } catch(e) {
     console.error(e);
     sourceSummaries.push(`❌ Hunt error: ${e.message}`);
@@ -2344,7 +3059,7 @@ function renderLeadList(containerId, arr, emptyMsg) {
 }
 
 function isGeoProximity(l) {
-  // Pierce County, Bonney Lake area, or Puyallup/Auburn ZIP belt near Tim's base
+  // Pierce County, Bonney Lake area, or Puyallup/Auburn ZIP belt near Alkan's base
   const pierceCities = new Set(['bonney lake','puyallup','sumner','auburn','tacoma','fife','milton','edgewood','federal way','kent','renton','covington','maple valley','black diamond','enumclaw']);
   const city = (l.city || '').toLowerCase().trim();
   const county = (l.county || '').toUpperCase();
@@ -2516,9 +3231,7 @@ function renderDrawer(l) {
       <div class="dr-field"><span class="dr-field-label">Owner Email</span><span class="dr-field-value ${l.owner_email ? 'ok' : 'missing'}">${escapeHtml(l.owner_email || 'NEEDS LOOKUP')}</span></div>
       <div class="dr-field"><span class="dr-field-label">Architect</span><span class="dr-field-value ${l.architect_name ? 'ok' : 'missing'}">${escapeHtml(l.architect_name || 'NEEDS LOOKUP')}</span></div>
       <div class="dr-field"><span class="dr-field-label">Owner's Rep</span><span class="dr-field-value ${l.owners_rep ? 'ok' : 'missing'}">${escapeHtml(l.owners_rep || 'NEEDS LOOKUP')}</span></div>
-      <div class="dr-field"><span class="dr-field-label">GC of Record</span><span class="dr-field-value ${l.no_gc ? 'ok' : ''}">${l.no_gc ? '✓ NONE — slot open 🟢' : escapeHtml(l.contractor_name)}</span></div>
-      ${!l.no_gc && l.contractor_name ? `<div class="dr-field"><span class="dr-field-label">Verificar Licencia</span><span class="dr-field-value"><a href="${l.gc_license_url || `https://secure.lni.wa.gov/verify/Results.aspx?NAME=${encodeURIComponent(l.contractor_name)}&PHRASE=false&DTYPE=ALL`}" target="_blank" style="color:var(--eb-green2)">🔍 Buscar "${escapeHtml(l.contractor_name)}" en L&I WA →</a></span></div>` : ''}
-      ${l.no_gc ? '<div class="dr-field"><span class="dr-field-label">Oportunidad</span><span class="dr-field-value ok">⚡ Sin GC asignado — contactar al owner directo</span></div>' : ''}
+      <div class="dr-field"><span class="dr-field-label">GC of Record</span><span class="dr-field-value ${l.no_gc ? 'ok' : ''}">${l.no_gc ? '✓ NONE — slot open' : escapeHtml(l.contractor_name)}</span></div>
 
       <div class="dr-actions">
         <button class="dr-btn" onclick="promptEnrich('${l.id}','owner_name','Owner full name')">+ Add owner name</button>
@@ -2970,7 +3683,7 @@ function generateBrief(l) {
   const conf = computeConfidence(l);
 
   lines.push(`═══════════════════════════════════════════════════════`);
-  lines.push(`  DECISION-MAKER BRIEF · For Envision Builders LLC`);
+  lines.push(`  DECISION-MAKER BRIEF · For Alkan Construction Assistant`);
   lines.push(`  Prepared by Alkan Construction Assistant`);
   lines.push(`  Data Confidence: ${conf.score}/100 · ${conf.score >= 70 ? 'HIGH' : conf.score >= 45 ? 'MEDIUM' : 'LOW'}`);
   lines.push(`═══════════════════════════════════════════════════════`);
@@ -3062,7 +3775,7 @@ function generateEmail(id, recipient) {
   if (!l) return;
   let subject, body;
   if (recipient === 'tim') {
-    subject = `New opportunity for Envision Builders — ${l.category ? l.category.label : 'Project'} ${l.address || ''}`;
+    subject = `New opportunity for Alkan Construction Assistant — ${l.category ? l.category.label : 'Project'} ${l.address || ''}`;
     body = `Tim,\n\nNew opportunity worth your review. Snapshot:\n\n` +
       `• ${l.title}\n` +
       `• ${l.category ? l.category.label : 'Project'}${l.unit_count ? ' · ' + l.unit_count + ' units' : ''}\n` +
@@ -3079,15 +3792,15 @@ function generateEmail(id, recipient) {
     // Owner email
     subject = `${l.category ? l.category.label : 'Construction'} project at ${l.address || ''} — interested in bidding`;
     body = `Hello${l.owner_name ? ' ' + l.owner_name.split(' ')[0] : ''},\n\n` +
-      `I'm reaching out on behalf of Envision Builders LLC, a licensed and bonded general contractor based in Bonney Lake, WA (license ENVISBI752MC, UBI 605 908 777).\n\n` +
+      `I'm reaching out on behalf of Alkan Construction Assistant, a licensed and bonded general contractor based in Bonney Lake, WA (license ENVISBI752MC, UBI 605 908 777).\n\n` +
       `We noticed your ${l.category ? l.category.label.toLowerCase() : 'project'} permit at ${l.address || ''}${l.permit_number ? ' (permit #' + l.permit_number + ')' : ''} and would welcome the opportunity to submit a proposal.\n\n` +
-      `Envision Builders specializes in:\n` +
+      `Alkan Construction Assistant specializes in:\n` +
       `  • Multifamily (5–30 units)\n  • SFR / ADU / DADU new construction\n  • Commercial TI and new build\n  • Townhome developments\n\n` +
       `We operate as a managing GC with structured preconstruction planning, coordinated subcontractor procurement, and a clean 6-year L&I record with zero violations.\n\n` +
       `Would you have 15 minutes this week to discuss your project? Happy to provide references and a preliminary review at no obligation.\n\n` +
       `Best regards,\n` +
-      `Tim Kairez, President\n` +
-      `Envision Builders LLC · 425.757.4591 · tim@envision-builds.com`;
+      `Andres Alkan, Principal\n` +
+      `Alkan Construction Assistant · +1 206 640 6034 · alkanassistant@gmail.com`;
   }
   const mailto = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   window.open(mailto);
@@ -3110,7 +3823,7 @@ function exportPipelineCSV() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `envision_builders_pipeline_${new Date().toISOString().slice(0,10)}.csv`;
+  a.download = `alkan_pipeline_${new Date().toISOString().slice(0,10)}.csv`;
   a.click();
 }
 
@@ -3121,7 +3834,7 @@ function exportPipelineForAshley() {
   const won = LEADS.filter(l => l.state === 'won');
 
   const lines = [];
-  lines.push(`WEEKLY PIPELINE BRIEF — ENVISION BUILDERS LLC`);
+  lines.push(`WEEKLY PIPELINE BRIEF — ALKAN CONSTRUCTION ASSISTANT`);
   lines.push(`Prepared by Alkan Construction Assistant`);
   lines.push(`Week of ${new Date().toLocaleDateString('en-US', { month:'long', day:'numeric', year:'numeric' })}`);
   lines.push('═'.repeat(60));
@@ -3129,7 +3842,7 @@ function exportPipelineForAshley() {
   lines.push(`SUMMARY`);
   lines.push(`  Opportunities sourced this week:   ${LEADS.filter(l => Date.now() - l.captured_ts < 7*86400000).length}`);
   lines.push(`  In active conversation:            ${inProgress.length}`);
-  lines.push(`  Ready for Tim's review (handoff):  ${handoffs.length}`);
+  lines.push(`  Ready for Alkan's review (handoff):  ${handoffs.length}`);
   lines.push(`  Contracts won (lifetime):          ${won.length}`);
   lines.push('');
   lines.push(`READY FOR REVIEW`);
@@ -3197,7 +3910,7 @@ function renderReport() {
       <div class="dr-field"><span class="dr-field-label">Pre-permit / under review</span><span class="dr-field-value">${LEADS.filter(l => ['application','intake','review','correction','pre_issuance'].includes(l.stage)).length}</span></div>
       <div class="dr-field"><span class="dr-field-label">No GC of record</span><span class="dr-field-value">${LEADS.filter(l => l.no_gc).length}</span></div>
       <div class="dr-field"><span class="dr-field-label">Fully enriched (owner + contact)</span><span class="dr-field-value">${LEADS.filter(l => l.fully_enriched).length}</span></div>
-      <div class="dr-field"><span class="dr-field-label">Ready for Tim's review</span><span class="dr-field-value">${handoffs.length}</span></div>
+      <div class="dr-field"><span class="dr-field-label">Ready for Alkan's review</span><span class="dr-field-value">${handoffs.length}</span></div>
       <div class="dr-field"><span class="dr-field-label">Contracts won (lifetime)</span><span class="dr-field-value">${won.length}</span></div>
     </div>
 
@@ -3228,7 +3941,7 @@ function copyReportText() {
   const newThisWeek = LEADS.filter(l => l.captured_ts >= weekStart);
   const handoffs = LEADS.filter(l => l.state === 'handoff' || l.ready_for_handoff);
   const lines = [
-    `WEEKLY PIPELINE REPORT — ENVISION BUILDERS LLC`,
+    `WEEKLY PIPELINE REPORT — ALKAN CONSTRUCTION ASSISTANT`,
     `Week of ${new Date().toLocaleDateString('en-US', { month:'long', day:'numeric', year:'numeric' })}`,
     `Prepared by Alkan Construction Assistant`,
     '═'.repeat(60),
@@ -3238,7 +3951,7 @@ function copyReportText() {
     `Pre-permit / under review:    ${LEADS.filter(l => ['application','intake','review','correction','pre_issuance'].includes(l.stage)).length}`,
     `No GC of record:              ${LEADS.filter(l => l.no_gc).length}`,
     `Owner contact verified:       ${LEADS.filter(l => l.fully_enriched).length}`,
-    `Ready for Tim's review:       ${handoffs.length}`,
+    `Ready for Alkan's review:       ${handoffs.length}`,
     '',
     `— Andres / Alkan Construction Assistant`
   ];
@@ -3247,7 +3960,7 @@ function copyReportText() {
 
 function downloadReportMarkdown() {
   const md = [
-    `# Weekly Pipeline Report — Envision Builders LLC`,
+    `# Weekly Pipeline Report — Alkan Construction Assistant`,
     ``,
     `**Week of:** ${new Date().toLocaleDateString('en-US', { month:'long', day:'numeric', year:'numeric' })}`,
     `**Prepared by:** Alkan Construction Assistant`,
@@ -3261,7 +3974,7 @@ function downloadReportMarkdown() {
     `- Owner contact verified: **${LEADS.filter(l => l.fully_enriched).length}**`,
     `- Ready for handoff: **${LEADS.filter(l => l.ready_for_handoff || l.state === 'handoff').length}**`,
     ``,
-    `## Ready for Tim's Review`,
+    `## Ready for Alkan's Review`,
     ``,
     ...LEADS.filter(l => l.ready_for_handoff || l.state === 'handoff').map(l =>
       `- **${l.title}** — ${l.category?.label} · ${fmtMoney(l.value)} · ${l.address}\n  - Owner: ${l.owner_name || 'TBD'} · ${l.owner_phone || l.owner_email || 'pending'}\n  - Stage: ${STAGE_LABELS[l.stage]?.label || l.stage}`
@@ -3272,7 +3985,7 @@ function downloadReportMarkdown() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `envision_builders_weekly_${new Date().toISOString().slice(0,10)}.md`;
+  a.download = `alkan_weekly_${new Date().toISOString().slice(0,10)}.md`;
   a.click();
 }
 
@@ -3294,7 +4007,8 @@ document.querySelectorAll('.tab[data-view]').forEach(t => {
     document.querySelectorAll('.view').forEach(x => x.classList.remove('active'));
     t.classList.add('active');
     CURRENT_VIEW = t.dataset.view;
-    document.getElementById(`view-${CURRENT_VIEW}`).classList.add('active');
+    const panel = document.getElementById(`view-${CURRENT_VIEW}`);
+    if (panel) panel.classList.add('active');
     rerender();
   });
 });
@@ -3517,6 +4231,7 @@ load().then(() => {
   if (!LEADS.length && !localStorage.getItem(SEED_KEY)) {
     seedDemoLeads();
   }
+  wireEdms();
   rerender();
 });
 
@@ -3526,13 +4241,267 @@ if (localStorage.getItem('pa_dismissed') === '1') {
   if (pa) pa.classList.add('hidden');
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// CSV IMPORT — v12 addition
+// ═══════════════════════════════════════════════════════════════════════════
+
+let CSV_PARSED_ROWS = [];
+let CSV_COLUMN_MAP = {};
+
+function triggerCsvPick() {
+  document.getElementById('csvFileInput').click();
+}
+
+function clearCsvPreview() {
+  CSV_PARSED_ROWS = [];
+  CSV_COLUMN_MAP = {};
+  document.getElementById('csvDropZone').style.display = 'block';
+  document.getElementById('csvStatus').style.display = 'none';
+  document.getElementById('csvMappingSection').style.display = 'none';
+  document.getElementById('csvPreviewSection').style.display = 'none';
+  document.getElementById('csvImportResult').innerHTML = '';
+  document.getElementById('csvClearBtn').style.display = 'none';
+  document.getElementById('tabCsvBadge').textContent = '0';
+  document.getElementById('csvFileInput').value = '';
+}
+
+function handleCsvFile(file) {
+  if (!file) return;
+  if (!file.name.toLowerCase().endsWith('.csv')) {
+    alert('Por favor selecciona un archivo .csv');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = e => parseCsvContent(e.target.result, file.name);
+  reader.readAsText(file);
+}
+
+function parseCsvLine(line) {
+  const result = [];
+  let cur = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') { inQ = !inQ; }
+    else if (c === ',' && !inQ) { result.push(cur.trim()); cur = ''; }
+    else { cur += c; }
+  }
+  result.push(cur.trim());
+  return result;
+}
+
+function detectColumnMap(headers) {
+  const map = {};
+  const h = headers.map(h => h.toLowerCase().replace(/[^a-z0-9_]/g,'_'));
+  const find = (...keys) => {
+    for (const k of keys) {
+      const idx = h.findIndex(col => col.includes(k));
+      if (idx !== -1) return idx;
+    }
+    return -1;
+  };
+  map.name       = find('name', 'contact', 'person', 'applicant');
+  map.company    = find('company', 'firm', 'organization', 'biz');
+  map.phone      = find('phone', 'tel', 'mobile', 'cell');
+  map.email      = find('email', 'mail');
+  map.address    = find('address', 'addr', 'location', 'project_address', 'direccion');
+  map.notes      = find('notes', 'description', 'desc', 'comments', 'notas');
+  map.value      = find('value', 'estimated', 'valuation', 'budget', 'amount');
+  map.permit     = find('permit', 'permit_number', 'case', 'record');
+  map.status     = find('status', 'stage', 'estado');
+  map.score      = find('score', 'rank', 'priority', 'permit_score');
+  return map;
+}
+
+function parseCsvContent(text, filename) {
+  const lines = text.trim().split(/\r?\n/);
+  if (lines.length < 2) { alert('El CSV está vacío o solo tiene encabezados.'); return; }
+  const headers = parseCsvLine(lines[0]);
+  CSV_COLUMN_MAP = detectColumnMap(headers);
+  CSV_PARSED_ROWS = [];
+  for (let i = 1; i < lines.length; i++) {
+    if (!lines[i].trim()) continue;
+    const vals = parseCsvLine(lines[i]);
+    const row = {};
+    headers.forEach((h, idx) => row[h] = vals[idx] || '');
+    CSV_PARSED_ROWS.push(row);
+  }
+
+  document.getElementById('csvDropZone').style.display = 'none';
+  document.getElementById('csvClearBtn').style.display = '';
+
+  // Status
+  const st = document.getElementById('csvStatus');
+  st.style.display = 'block';
+  st.innerHTML = `✓ <b>${filename}</b> cargado · <b>${CSV_PARSED_ROWS.length}</b> filas · <b>${headers.length}</b> columnas detectadas`;
+
+  // Mapping display
+  const mg = document.getElementById('csvMappingGrid');
+  const fieldNames = { name:'Nombre', company:'Empresa', phone:'Teléfono', email:'Email', address:'Dirección', notes:'Notas/Descripción', value:'Valor estimado', permit:'Permit #', status:'Estado', score:'Score' };
+  mg.innerHTML = Object.entries(CSV_COLUMN_MAP).map(([field, idx]) => {
+    const col = idx !== -1 ? headers[idx] : null;
+    return `<div style="background:var(--surface2);border:1px solid ${col?'var(--eb-green)':'var(--border)'};border-radius:8px;padding:8px 12px;font-size:12px">
+      <div style="color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:0.06em">${fieldNames[field]||field}</div>
+      <div style="color:${col?'var(--eb-green2)':'var(--text3)'};font-weight:600;margin-top:2px">${col ? '→ ' + col : '— no mapeado —'}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('csvMappingSection').style.display = 'block';
+
+  // Preview table
+  const previewRows = CSV_PARSED_ROWS.slice(0, 10);
+  const showCols = headers.slice(0, 6);
+  const thead = document.getElementById('csvPreviewHead');
+  const tbody = document.getElementById('csvPreviewBody');
+  thead.innerHTML = '<tr style="background:var(--surface3)">' +
+    showCols.map(h => `<th style="padding:8px 12px;text-align:left;font-size:11px;color:var(--text3);font-weight:600;border-bottom:1px solid var(--border2);white-space:nowrap">${h}</th>`).join('') +
+    '</tr>';
+  tbody.innerHTML = previewRows.map((row, i) => {
+    const bg = i % 2 === 0 ? 'var(--surface)' : 'var(--surface2)';
+    return '<tr style="background:' + bg + '">' +
+      showCols.map(h => `<td style="padding:7px 12px;border-bottom:1px solid var(--border);color:var(--text2);white-space:nowrap;max-width:200px;overflow:hidden;text-overflow:ellipsis" title="${escapeHtml(String(row[h]||''))}">${escapeHtml(String(row[h]||'').slice(0,60))}</td>`).join('') +
+      '</tr>';
+  }).join('');
+  if (CSV_PARSED_ROWS.length > 10) {
+    tbody.innerHTML += `<tr><td colspan="${showCols.length}" style="padding:8px 12px;color:var(--text3);font-size:12px;text-align:center">… y ${CSV_PARSED_ROWS.length - 10} filas más</td></tr>`;
+  }
+
+  document.getElementById('csvPreviewTitle').textContent = `Preview — primeras ${Math.min(10, CSV_PARSED_ROWS.length)} de ${CSV_PARSED_ROWS.length} leads`;
+  document.getElementById('csvPreviewSection').style.display = 'block';
+  document.getElementById('tabCsvBadge').textContent = CSV_PARSED_ROWS.length;
+}
+
+function extractAddressFromNotes(notes) {
+  if (!notes) return '';
+  const m = notes.match(/Dirección:\s*([^|]+)/);
+  return m ? m[1].trim() : '';
+}
+
+function extractDescriptionFromNotes(notes) {
+  if (!notes) return '';
+  const parts = notes.split('|');
+  for (const p of parts) {
+    const t = p.trim();
+    if (!t.startsWith('Score') && !t.startsWith('Status') && !t.startsWith('Fecha') &&
+        !t.startsWith('Dirección') && !t.startsWith('Applicant') && !t.startsWith('Fuente') && t.length > 10) {
+      return t;
+    }
+  }
+  return '';
+}
+
+function rowToLead(row) {
+  const m = CSV_COLUMN_MAP;
+  const g = (idx) => idx !== -1 ? String(row[Object.keys(row)[idx]] || '') : '';
+
+  // Use all headers to get values
+  const headers = Object.keys(row);
+  const gByIdx = (idx) => idx !== -1 && idx < headers.length ? String(row[headers[idx]] || '') : '';
+
+  const rawNotes  = gByIdx(m.notes);
+  const rawAddr   = gByIdx(m.address);
+  const rawName   = gByIdx(m.name);
+  const rawCo     = gByIdx(m.company);
+  const rawPhone  = gByIdx(m.phone);
+  const rawEmail  = gByIdx(m.email);
+  const rawValue  = gByIdx(m.value);
+  const rawPermit = gByIdx(m.permit);
+  const rawScore  = gByIdx(m.score);
+
+  // Extract address from notes if dedicated column is empty
+  const address = rawAddr || extractAddressFromNotes(rawNotes);
+  const description = extractDescriptionFromNotes(rawNotes) || rawNotes.slice(0, 200);
+
+  const cat = matchCategory(description) || PROJECT_CATEGORIES.find(c => c.code === 'sfr');
+
+  // Parse value
+  let value = null;
+  if (rawValue) {
+    const vnum = parseFloat(rawValue.replace(/[$,]/g, ''));
+    if (!isNaN(vnum)) value = vnum;
+  }
+
+  // Parse score to infer stage
+  let stage = 'application';
+  const scoreNum = parseInt(rawScore, 10);
+  const rawStatus = gByIdx(m.status) || '';
+  if (rawStatus) {
+    const st = rawStatus.toLowerCase();
+    if (st.includes('issued')) stage = 'issued_lt_30d';
+    else if (st.includes('review')) stage = 'review';
+    else if (st.includes('pre')) stage = 'pre_issuance';
+    else if (st.includes('intake')) stage = 'intake';
+    else if (st.includes('ready')) stage = 'pre_issuance';
+    else if (st.includes('correction')) stage = 'correction';
+  }
+
+  const lead = {
+    id: 'csv_' + uid(),
+    source: 'csv_import',
+    source_label: 'CSV Import',
+    title: [rawCo || rawName, address].filter(Boolean).join(' — ').slice(0, 80) || 'Lead importado',
+    description: description,
+    permit_type: cat.label,
+    permit_number: rawPermit,
+    permit_status_raw: rawStatus || 'Imported from CSV',
+    stage,
+    category: cat,
+    unit_count: extractUnitCount(description),
+    address,
+    city: address.split(',').slice(-2, -1)[0]?.trim() || '',
+    zip: (address.match(/\d{5}/) || [])[0] || '',
+    county: 'SNOHOMISH',
+    value,
+    posted_ts: now(),
+    application_date: null,
+    issued_date: null,
+    contractor_name: '',
+    no_gc: true,
+    owner_name: rawName || '',
+    owner_phone: rawPhone || '',
+    owner_email: rawEmail || '',
+    architect_name: rawCo || '',
+    owners_rep: '',
+    parcel_number: '',
+    state: 'new',
+    timeline: [],
+    captured_ts: now(),
+    notes: rawNotes ? rawNotes.slice(0, 500) : ''
+  };
+  scoreLead(lead);
+  return lead;
+}
+
+function importCsvLeads() {
+  if (!CSV_PARSED_ROWS.length) { alert('No hay datos para importar.'); return; }
+  let added = 0;
+  let skipped = 0;
+  for (const row of CSV_PARSED_ROWS) {
+    const lead = rowToLead(row);
+    // Skip duplicates by permit number if present
+    if (lead.permit_number && LEADS.find(l => l.permit_number === lead.permit_number)) {
+      skipped++;
+      continue;
+    }
+    LEADS.push(lead);
+    added++;
+  }
+  save();
+  rerender();
+  const res = document.getElementById('csvImportResult');
+  res.innerHTML = `<div style="padding:12px 16px;background:rgba(45,134,89,0.15);border:1px solid var(--eb-green);border-radius:8px;color:var(--eb-green2)">
+    ✓ <b>${added}</b> leads importados al pipeline.${skipped ? ` <span style="color:var(--text3)">${skipped} omitidos por duplicado.</span>` : ''}
+    &nbsp;&nbsp;<button class="btn-ghost" style="font-size:12px;padding:4px 10px" onclick="document.querySelector('.tab[data-view=hunt]').click()">Ver en Hunt →</button>
+  </div>`;
+  document.getElementById('tabCsvBadge').textContent = added;
+}
+
+
 </script>
 
 <footer class="alkan-footer">
   <div class="alkan-footer-inner">
     <div>
-      <div class="alkan-footer-logo">Alkan <span class="blue">Lead</span> <span class="gold">Hunter</span> · v11-EB</div>
-      <div class="alkan-footer-by">Envision Builders Edition · Built by <b>Andres Alkan</b></div>
+      <div class="alkan-footer-logo">Alkan <span class="blue">Lead</span> <span class="gold">Hunter</span> · v13</div>
+      <div class="alkan-footer-by">Alkan Construction Assistant · Built by <b>Andres Alkan</b></div>
     </div>
     <div>
       <div class="alkan-footer-contact">
