@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "@playwright/test": "^1.60.0",
+    "axios": "^1.16.1",
+    "csv-parser": "^3.2.1",
+    "csv-writer": "^1.6.0"
+  }
+}
