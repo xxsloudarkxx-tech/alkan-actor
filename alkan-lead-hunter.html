@@ -1428,6 +1428,55 @@ const PROJECT_CATEGORIES = [
     keys: ['affordable housing','affordable',' lihtc','low-income housing','workforce housing','section 8','public housing','sha ','seattle housing authority','king county housing authority','housing authority','wshfc','tax credit'],
     sweet_spot: [1000000, 50000000],
     priority: 'STRATEGIC'
+  },
+  {
+    code: 'roofing',
+    label: 'Roofing',
+    keys: ['roofing','re-roof','reroof','roof replacement','roof system','new roof','roof assembly','shingle','metal roof','flat roof','membrane roof'],
+    sweet_spot: [15000, 300000],
+    priority: 'TRADE'
+  },
+  {
+    code: 'concrete',
+    label: 'Concrete / Flatwork',
+    keys: ['concrete','flatwork','slab','foundation concrete','concrete pour','retaining wall','concrete driveway','concrete sidewalk','tilt-up','poured concrete'],
+    sweet_spot: [20000, 500000],
+    priority: 'TRADE'
+  },
+  {
+    code: 'framing',
+    label: 'Framing / Structural',
+    keys: ['framing','structural framing','wood frame','steel frame','addition framing','room addition','second story addition','bump out','structural addition'],
+    sweet_spot: [30000, 800000],
+    priority: 'TRADE'
+  },
+  {
+    code: 'landscaping',
+    label: 'Landscaping / Site Work',
+    keys: ['landscaping','landscape','site work','grading','drainage','hardscape','retaining','irrigation','site improvement','earthwork','excavation'],
+    sweet_spot: [15000, 400000],
+    priority: 'TRADE'
+  },
+  {
+    code: 'interior_finish',
+    label: 'Interior Finish (Drywall/Paint/Floor)',
+    keys: ['drywall','sheetrock','gypsum board','interior finish','painting','interior paint','flooring','hardwood floor','tile floor','lvp','luxury vinyl','carpet','finish carpentry','millwork','trim carpentry','wainscot','crown molding','cabinetry','cabinet install'],
+    sweet_spot: [10000, 250000],
+    priority: 'TRADE'
+  },
+  {
+    code: 'metalwork',
+    label: 'Metal / Steel Fabrication',
+    keys: ['metal fabrication','structural steel','steel erection','metal stud','light gauge','metal panel','steel structure','miscellaneous metals','metal framing','ornamental iron'],
+    sweet_spot: [25000, 1000000],
+    priority: 'TRADE'
+  },
+  {
+    code: 'remodel',
+    label: 'Remodel / Renovation',
+    keys: ['remodel','renovation','gut rehab','interior remodel','kitchen remodel','bathroom remodel','full remodel','major renovation','interior renovation','rehab','alteration'],
+    sweet_spot: [50000, 1500000],
+    priority: 'HIGH'
   }
 ];
 
@@ -1923,6 +1972,10 @@ async function scrapeSeattleDCI() {
         application_date: p.applieddate,
         url: permitUrl,
         contractor_name: p.contractorcompanyname || '',
+        no_gc: !p.contractorcompanyname,  // true = no GC assigned = golden window
+        gc_license_url: p.contractorcompanyname
+          ? `https://secure.lni.wa.gov/verify/Results.aspx?NAME=${encodeURIComponent(p.contractorcompanyname)}&ZIPCODE=&UBI=&LIC=&PHRASE=false&DTYPE=ALL`
+          : null,
         owner_name: '',  // Seattle dataset does NOT expose owner — needs Parcel lookup
         owner_phone: '',
         owner_email: '',
@@ -2382,7 +2435,9 @@ function renderDrawer(l) {
       <div class="dr-field"><span class="dr-field-label">Owner Email</span><span class="dr-field-value ${l.owner_email ? 'ok' : 'missing'}">${escapeHtml(l.owner_email || 'NEEDS LOOKUP')}</span></div>
       <div class="dr-field"><span class="dr-field-label">Architect</span><span class="dr-field-value ${l.architect_name ? 'ok' : 'missing'}">${escapeHtml(l.architect_name || 'NEEDS LOOKUP')}</span></div>
       <div class="dr-field"><span class="dr-field-label">Owner's Rep</span><span class="dr-field-value ${l.owners_rep ? 'ok' : 'missing'}">${escapeHtml(l.owners_rep || 'NEEDS LOOKUP')}</span></div>
-      <div class="dr-field"><span class="dr-field-label">GC of Record</span><span class="dr-field-value ${l.no_gc ? 'ok' : ''}">${l.no_gc ? '✓ NONE — slot open' : escapeHtml(l.contractor_name)}</span></div>
+      <div class="dr-field"><span class="dr-field-label">GC of Record</span><span class="dr-field-value ${l.no_gc ? 'ok' : ''}">${l.no_gc ? '✓ NONE — slot open 🟢' : escapeHtml(l.contractor_name)}</span></div>
+      ${!l.no_gc && l.contractor_name ? `<div class="dr-field"><span class="dr-field-label">Verificar Licencia</span><span class="dr-field-value"><a href="${l.gc_license_url || `https://secure.lni.wa.gov/verify/Results.aspx?NAME=${encodeURIComponent(l.contractor_name)}&PHRASE=false&DTYPE=ALL`}" target="_blank" style="color:var(--eb-green2)">🔍 Buscar "${escapeHtml(l.contractor_name)}" en L&I WA →</a></span></div>` : ''}
+      ${l.no_gc ? '<div class="dr-field"><span class="dr-field-label">Oportunidad</span><span class="dr-field-value ok">⚡ Sin GC asignado — contactar al owner directo</span></div>' : ''}
 
       <div class="dr-actions">
         <button class="dr-btn" onclick="promptEnrich('${l.id}','owner_name','Owner full name')">+ Add owner name</button>
