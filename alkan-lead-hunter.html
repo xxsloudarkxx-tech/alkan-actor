@@ -1905,6 +1905,40 @@ const PROJECT_CATEGORIES = [
     keys: ['affordable housing','affordable',' lihtc','low-income housing','workforce housing','section 8','public housing','sha ','seattle housing authority','king county housing authority','housing authority','wshfc','tax credit'],
     sweet_spot: [1000000, 50000000],
     priority: 'STRATEGIC'
+  },
+
+  // ── SUBCONTRACTOR TRADES — Alkan client verticals ─────────────────────────
+  {
+    code: 'roofing',
+    label: 'Roofing',
+    keys: ['roofing','re-roof','reroof','roof replacement','roof repair','roof system',
+           'new roof','shingle','metal roof','flat roof','membrane roof','tpo','epdm',
+           'torch down','modified bitumen','built-up roof','standing seam','cedar shake',
+           'roof deck','reroofing','recover roof'],
+    sweet_spot: [15000, 500000],
+    priority: 'HIGH'
+  },
+  {
+    code: 'metalwork',
+    label: 'Metal / Steel / Welding',
+    keys: ['metal fabricat','structural steel','steel erection','steel structure',
+           'steel frame','ornamental iron','welding','weld','misc metal','miscellaneous metal',
+           'metal panel','metal deck','steel deck','rebar','reinforcing steel',
+           'aluminum storefront','curtain wall','steel stair','metal railing','metal fence',
+           'cold-formed steel','light gauge steel','metal stud'],
+    sweet_spot: [25000, 2000000],
+    priority: 'HIGH'
+  },
+  {
+    code: 'concrete',
+    label: 'Concrete / Masonry',
+    keys: ['concrete','flatwork','concrete slab','slab on grade','concrete foundation',
+           'foundation wall','poured wall','cast in place','tilt-up','precast',
+           'masonry','cmu','concrete block','block wall','brick','retaining wall',
+           'concrete driveway','concrete sidewalk','shotcrete','grout','footings',
+           'grade beam','pile cap','parking structure concrete'],
+    sweet_spot: [20000, 1500000],
+    priority: 'HIGH'
   }
 ];
 
@@ -1912,7 +1946,7 @@ const PROJECT_CATEGORIES = [
 const EXCLUSION_KEYWORDS = [
   // Pure repairs / small remodels
   'sign permit','sign installation','minor repair','minor alteration',
-  're-roof only','reroof only','siding only','window replacement only',
+  'siding only','window replacement only',
   'fence permit only','deck repair','deck replacement only',
   'plumbing permit only','mechanical permit only','electrical permit only',
   'demolition only','demolition permit only',
