@@ -1545,7 +1545,8 @@ select.lead-state-select {
         <div class="hunt-title">Pipeline opportunities <em>before</em> they have a GC.</div>
         <div class="source-chips" id="sourceChips">
           <!-- Tier 1 — Active API/Socrata -->
-          <button class="chip active" data-source="houston_tx"><span class="icon">🤠</span> Houston TX <span class="chip-help">#1 EE.UU. · Socrata live</span></button>
+          <button class="chip active" data-source="houston_tx"><span class="icon">🏗</span> Seattle DCI <span class="chip-help">WA · Socrata live</span></button>
+          <button class="chip active" data-source="austin_tx"><span class="icon">🤠</span> Austin TX <span class="chip-help">TX · Socrata live</span></button>
           <button class="chip active" data-source="snohomish_county"><span class="icon">🏛</span> Snohomish <span class="chip-help">N. Puget Sound</span></button>
           <!-- Tier 2 — Manual portals -->
           <button class="chip" data-source="harris_county"><span class="icon">🏛</span> Harris County <span class="chip-help">Houston unincorporated</span></button>
@@ -1590,7 +1591,8 @@ select.lead-state-select {
       </div>
       <div class="status-msg" id="statusMsg">Select sources and click "Start Hunt" — pre-permit & application-stage opportunities only.</div>
       <div class="status-stats">
-        <span>hou: <b id="ctHouston">0</b></span>
+        <span>sea: <b id="ctHouston">0</b></span>
+        <span>aus: <b id="ctAustin">0</b></span>
         <span>sno: <b id="ctSno">0</b></span>
         <span>harris: <b id="ctHarris">0</b></span>
         <span>ftbend: <b id="ctFtBend">0</b></span>
@@ -2338,7 +2340,7 @@ async function fetchDirect(url, opts = {}) {
 
 function bumpCounter(label, n) {
   const ids = {
-    Houston: 'ctHouston', Sno: 'ctSno',
+    Houston: 'ctHouston', Austin: 'ctAustin', Sno: 'ctSno',
     Harris: 'ctHarris', FtBend: 'ctFtBend', Mont: 'ctMont',
     Galveston: 'ctGalveston', Brazoria: 'ctBrazoria',
   };
@@ -2551,6 +2553,94 @@ async function scrapeHoustonTX() {
   return {
     leads: out,
     summary: `Houston TX (directo): ${rawCount} raw → ${categoryMatches} cat → ${out.length} leads`
+  };
+}
+
+// ── Austin TX — data.austintexas.gov Socrata ─────────────────────────────────
+async function scrapeAustinTX() {
+  const out = [];
+  let rawCount = 0;
+  let categoryMatches = 0;
+  let exclusionDrops = 0;
+
+  // Actor first (same /hunt endpoint — includes Austin via multi-source)
+  // Note: actor /hunt already returns both Seattle + Austin combined.
+  // This function is the DIRECT Austin fallback when actor is down.
+
+  try {
+    logStatus('Austin TX · connecting to data.austintexas.gov...', 'running');
+    const cutoff = new Date(Date.now() - 180*86400000).toISOString().slice(0,10);
+    const url = `https://data.austintexas.gov/resource/3syk-w9eu.json`
+              + `?$where=applied_date>'${cutoff}T00:00:00'`
+              + `&$order=applied_date%20DESC&$limit=500`;
+
+    const r = await fetchWithTimeout(url, { headers: { 'Accept': 'application/json' } }, 25000);
+    if (!r.ok) throw new Error(`Austin API → HTTP ${r.status}`);
+    const rows = await r.json();
+    if (!Array.isArray(rows)) throw new Error('Austin API returned non-array');
+
+    rawCount = rows.length;
+    logStatus(`Austin TX · ${rawCount} permits fetched, filtering...`, 'running');
+
+    for (const p of rows) {
+      if (STOPFLAG) break;
+      const desc       = p.description ?? p.work_class ?? '';
+      const permitType = p.permit_type_desc ?? p.permit_type ?? '';
+      const fullText   = `${desc} ${permitType}`;
+      const category   = matchCategory(fullText);
+      if (!category) { exclusionDrops++; continue; }
+      categoryMatches++;
+      if (isExcluded(fullText)) { exclusionDrops++; continue; }
+
+      const contractor = p.contractor_company_name ?? p.contractor_name ?? null;
+      const valuation  = parseFloat(p.declared_valuation ?? p.total_valuation ?? '0') || null;
+      const status     = p.status_current ?? p.status ?? '';
+
+      const lead = {
+        id: `aus_${p.permitnum || uid()}`,
+        source: 'austin_open_data',
+        source_label: 'Austin TX',
+        title: `${category.label} — ${(p.original_address_1 || '').slice(0,60)}`,
+        description: desc.slice(0,800),
+        permit_type: permitType,
+        permit_number: p.permitnum ?? null,
+        permit_status_raw: status,
+        stage: classifyStage(status, p.issued_date),
+        category,
+        unit_count: extractUnitCount(fullText),
+        address: p.original_address_1 ?? '',
+        city: 'Austin',
+        zip: p.original_zip ?? '',
+        county: 'TRAVIS',
+        value: valuation,
+        posted_ts: p.applied_date ? new Date(p.applied_date).getTime() : Date.now(),
+        issued_date: p.issued_date ?? null,
+        application_date: p.applied_date ?? null,
+        url: p.permitnum
+          ? `https://abc.austintexas.gov/web/permit/public-search-other?query=${p.permitnum}`
+          : '',
+        contractor_name: contractor || '',
+        no_gc: !contractor,
+        gc_license_url: contractor
+          ? `https://www.tdlr.texas.gov/civerify/licensesearch.asp?search_type=name&name=${encodeURIComponent(contractor)}`
+          : null,
+        owner_name: '', owner_phone: '', owner_email: '',
+        architect_name: '', owners_rep: '',
+        state: 'new', timeline: [], captured_ts: now(), notes: '',
+        fully_enriched: false,
+      };
+      scoreLead(lead);
+      out.push(lead);
+    }
+  } catch(e) {
+    console.error('Austin TX failed:', e);
+    return { leads: [], summary: `Austin TX: ❌ ${e.message}` };
+  }
+
+  bumpCounter('Austin', out.length);
+  return {
+    leads: out,
+    summary: `Austin TX: ${rawCount} raw → ${categoryMatches} matched → ${out.length} leads (${exclusionDrops} excluidos)`
   };
 }
 
@@ -3114,6 +3204,7 @@ async function startHunt() {
 
   try {
     if (sources.includes('houston_tx') && !STOPFLAG) mergeResult(await scrapeHoustonTX(), 'Houston');
+    if (sources.includes('austin_tx') && !STOPFLAG) mergeResult(await scrapeAustinTX(), 'Austin');
     if (sources.includes('snohomish_county') && !STOPFLAG) mergeResult(await scrapeSnohomish(), 'Sno');
     if (sources.includes('harris_county') && !STOPFLAG) mergeResult(await scrapeHarrisCounty(), 'Harris');
     if (sources.includes('fort_bend') && !STOPFLAG) mergeResult(await scrapeFortBend(), 'FtBend');
