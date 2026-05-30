@@ -31,10 +31,10 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
   const SUPABASE_URL = 'https://qyesctuksvtblegkinrj.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF5ZXNjdHVrc3Z0YmxlZ2tpbnJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2NzU5NzEsImV4cCI6MjA5NTI1MTk3MX0.ENr_6um5ob3COrgiJrI67EAetch8Yutf_by7FY1gDMM';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF5ZXNjdHVrc3Z0YmxlZ2tpbnJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc2MDY3OTMsImV4cCI6MjA2MzE4Mjc5M30.O4sMRBm0YGX_JMBiFfNzBcO2NK_tNTRuwPCYRVNRmKA';
   const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  // ── Alkan Actor (Render) ─────────────────────────────────────────────────
+  // ── Actor (Render) ──────────────────────────────────────────────────────
   const ACTOR_URL     = 'https://hunerleads.onrender.com';
   const ACTOR_API_KEY = 'alkan_prod_2026';
 </script>
@@ -1563,6 +1563,20 @@ select.lead-state-select {
           <button class="chip" data-source="affordable_housing"><span class="icon">🏘</span> Affordable Housing <span class="chip-help">WSHFC / KCHA</span></button>
         </div>
       </div>
+      <div style="margin-bottom:8px">
+        <label style="font-size:10px;color:var(--ink-faint);letter-spacing:.06em;text-transform:uppercase;display:block;margin-bottom:4px">
+          Socrata App Token
+          <a href="https://data.seattle.gov/profile/app_tokens" target="_blank" style="color:var(--green);text-decoration:none;margin-left:4px" title="Gratis en data.seattle.gov — requerido para datos en vivo">(?)</a>
+        </label>
+        <input id="socrataToken" type="text" placeholder="Pega tu token aquí — requerido para Seattle DCI en vivo"
+          style="background:var(--surface1);border:1px solid var(--border);border-radius:8px;color:var(--ink);
+                 font-family:'JetBrains Mono',monospace;font-size:11px;padding:6px 10px;width:340px;outline:none;
+                 transition:border-color .2s"
+          onfocus="this.style.borderColor='var(--green)'"
+          onblur="this.style.borderColor='var(--border)'"
+          oninput="localStorage.setItem('socrata_token', this.value)"
+        />
+      </div>
       <div class="hunt-actions">
         <button class="btn-hunt" id="btnHunt" onclick="startHunt()">▶ Start Hunt</button>
         <button class="btn-ghost" onclick="clearAll()">⟲ Clear All</button>
@@ -1660,7 +1674,7 @@ select.lead-state-select {
       </div>
       <div class="hunt-actions">
         <button class="btn-ghost" onclick="exportPipelineCSV()">⬇ Export CSV</button>
-        <button class="btn-ghost" onclick="exportPipelineForAshley()">📧 Export Weekly Brief</button>
+        <button class="btn-ghost" onclick="exportWeeklyBrief()">📧 Export Weekly Brief</button>
       </div>
     </div>
     <div class="view-toolbar">
@@ -1669,7 +1683,7 @@ select.lead-state-select {
         <option value="">All states</option>
         <option value="contacted">Contacted</option>
         <option value="qualified">Qualified</option>
-        <option value="handoff">Handed off to Tim</option>
+        <option value="handoff">Handed off to Client</option>
         <option value="won">Won</option>
         <option value="lost">Lost</option>
       </select>
@@ -1682,7 +1696,7 @@ select.lead-state-select {
     <div class="hunt-bar">
       <div>
         <div class="hunt-eyebrow">Decision-maker briefs</div>
-        <div class="hunt-title">Warm handoffs <em>ready</em> for Tim &amp; Ashley.</div>
+        <div class="hunt-title">Warm handoffs <em>ready</em> for your team.</div>
       </div>
       <div class="hunt-actions">
         <button class="btn-ghost" onclick="copyAllHandoffBriefs()">📋 Copy all briefs</button>
@@ -1835,7 +1849,7 @@ select.lead-state-select {
 const CLIENT = {
   name: 'Alkan Construction Assistant',
   contact: 'Andres Alkan',
-  bd: 'Ashley Kairez',
+  bd: 'Business Development',
   location: 'Bonney Lake, WA',
   email: 'alkanassistant@gmail.com',
   phone: '+1 206 640 6034',
@@ -1843,18 +1857,17 @@ const CLIENT = {
   license: 'ENVISBI752MC'
 };
 
-const STORAGE_KEY = 'alkan_eb_v9_leads';
+const STORAGE_KEY = 'alkan_lh_v14_leads';
 const SEED_KEY = 'alkan_seeded_v13';
 
-// TARGET PROJECT CATEGORIES — what Tim actually wants
-// (replaces TRADE_KEYWORDS from v8 — trades are noise for Tim)
+// TARGET PROJECT CATEGORIES — calibrated for GC pre-permit opportunities
 const PROJECT_CATEGORIES = [
   {
     code: 'multifamily',
     label: 'Multifamily',
     keys: ['multifamily','multi-family','apartment','apt building','5-unit','6-unit','8-unit','10-unit','12-unit','15-unit','20-unit','25-unit','30-unit','units','duplex','triplex','fourplex','5+ units','dwelling units','dwelling unit'],
     min_units: 5,
-    max_units: 30, // Tim: "under 30 units"
+    max_units: 30, // max units for multifamily scope
     sweet_spot: [500000, 10000000],
     priority: 'PRIMARY'
   },
@@ -1895,7 +1908,7 @@ const PROJECT_CATEGORIES = [
   }
 ];
 
-// CATEGORIES TO EXCLUDE — explicit "NOT THIS" list for Tim
+// CATEGORIES TO EXCLUDE — explicit exclusion list
 const EXCLUSION_KEYWORDS = [
   // Pure repairs / small remodels
   'sign permit','sign installation','minor repair','minor alteration',
@@ -1903,7 +1916,7 @@ const EXCLUSION_KEYWORDS = [
   'fence permit only','deck repair','deck replacement only',
   'plumbing permit only','mechanical permit only','electrical permit only',
   'demolition only','demolition permit only',
-  // Public works (Tim said NO except affordable housing — handled separately)
+  // Public works — excluded except affordable housing (handled separately)
   'street improvement','sidewalk repair','road improvement','stormwater pipe',
   'sewer main','water main',
   // Single-trade jobs (not Alkan's profile)
@@ -1914,7 +1927,7 @@ const EXCLUSION_KEYWORDS = [
 ];
 
 // PERMIT STAGE INTELLIGENCE
-// Tim wants pre-permit / under-review opportunities (no GC yet),
+// Pre-permit / under-review opportunities (no GC yet),
 // NOT issued permits (those already have a GC locked in)
 const STAGE_SCORES = {
   application: 25,        // Best — application just submitted
@@ -2097,7 +2110,7 @@ function scoreLead(lead) {
   // 0) HARD EXCLUSION — single-trade repairs, owner-remodels, sign permits, etc.
   if (isExcluded(text)) {
     lead.score = 0;
-    lead.score_reasons = ['EXCLUDED: matches Tim\'s "not interested" list'];
+    lead.score_reasons = ['EXCLUDED: matches client exclusion list'];
     lead.why_relevant = [];
     lead.intent_level = 'cold';
     lead.is_excluded = true;
@@ -2114,11 +2127,11 @@ function scoreLead(lead) {
     reasons.push('-12 no target category');
   }
 
-  // 2) UNIT COUNT for multifamily — Tim wants <30
+  // 2) UNIT COUNT for multifamily — max 30 units
   if (lead.category && lead.category.code === 'multifamily' && lead.unit_count) {
     if (lead.unit_count > 30) {
       score -= 25;
-      reasons.push('-25 multifamily >30 units (out of Tim\'s scope)');
+      reasons.push('-25 multifamily >30 units (out of scope)');
     } else if (lead.unit_count >= 5 && lead.unit_count <= 30) {
       score += 10;
       reasons.push(`+10 multifamily ${lead.unit_count} units (sweet spot)`);
@@ -2149,7 +2162,7 @@ function scoreLead(lead) {
     why.push('no general contractor of record yet');
     lead.no_gc = true;
   } else {
-    // If issued with GC, this is dead for Tim
+    // If issued with GC, lower priority
     if (lead.stage && lead.stage.startsWith('issued')) {
       score -= 25;
       reasons.push('-25 issued + GC already assigned');
@@ -2159,7 +2172,7 @@ function scoreLead(lead) {
     }
   }
 
-  // 5) OWNER ENRICHMENT — Tim wants OWNER, ARCHITECT, OWNER'S REP info
+  // 5) OWNER ENRICHMENT — need OWNER, ARCHITECT, OWNER'S REP info
   let enrichScore = 0;
   if (lead.owner_name) { enrichScore += 4; reasons.push('+4 owner name'); }
   if (lead.owner_phone || lead.owner_email) { enrichScore += 8; reasons.push('+8 owner contact'); }
@@ -2173,7 +2186,7 @@ function scoreLead(lead) {
     why.push('partial enrichment — needs follow-up');
   }
 
-  // 6) PROJECT VALUE — Tim sweet spots
+  // 6) PROJECT VALUE — target sweet spots
   if (lead.value) {
     if (lead.category && lead.category.sweet_spot) {
       const [min, max] = lead.category.sweet_spot;
@@ -2186,7 +2199,7 @@ function scoreLead(lead) {
         reasons.push('-8 value below threshold');
       } else if (lead.value > max * 2) {
         score -= 5;
-        reasons.push('-5 value above Tim\'s typical scope');
+        reasons.push('-5 value above typical scope');
       }
     } else if (lead.value > 500000) {
       score += 6;
@@ -2250,6 +2263,12 @@ async function fetchWithTimeout(url, opts = {}, ms = 25000) {
 }
 
 async function fetchDirect(url, opts = {}) {
+  // Inject Socrata App Token — required by data.seattle.gov and data.kingcounty.gov
+  const token = localStorage.getItem('socrata_token') ||
+                (document.getElementById('socrataToken') || {}).value || '';
+  if (token) {
+    opts = { ...opts, headers: { ...(opts.headers || {}), 'X-App-Token': token } };
+  }
   let lastError;
   for (let i = 0; i < CORS_PROXIES.length; i++) {
     const target = CORS_PROXIES[i](url);
@@ -2313,15 +2332,26 @@ function logStatus(msg, state) {
   }
 }
 
-// ── Actor helper — normaliza un permit del actor /hunt en un lead ────────────
+// Seattle DCI — focusing on APPLICATIONS and IN-REVIEW, not just issued
+// Dataset: data.seattle.gov/resource/76t5-zqzr.json (Building Permits, active 2026)
+// IMPORTANT: this dataset uses SMASHED LOWERCASE field names (no underscores).
+// Verified live field names:
+//   permitnum, permitclass, permitclassmapped, permittypemapped, permittypedesc,
+//   description, housingunits, housingunitsadded, estprojectcost,
+//   applieddate, issueddate, statuscurrent, originaladdress1, originalcity,
+//   originalzip, contractorcompanyname, link ({url: '...'})
+// ── actorPermitToLead — convierte un permit del actor al shape de LEADS ──────
 function actorPermitToLead(p) {
-  const catCode = p.category;
-  const category = catCode
-    ? (PROJECT_CATEGORIES.find(c => c.code === catCode) || { code: catCode, label: catCode })
-    : null;
-  if (!category) return null;
   const fullText = `${p.description || ''} ${p.permit_type || ''}`;
   if (isExcluded(fullText)) return null;
+
+  // Categoría: primero del actor, luego matchCategory local, luego genérico
+  const catCode = p.category;
+  let category = catCode
+    ? (PROJECT_CATEGORIES.find(c => c.code === catCode) || { code: catCode, label: catCode })
+    : null;
+  if (!category) category = matchCategory(fullText);
+  if (!category) category = { code: 'other', label: 'Other' };
 
   const lead = {
     id: `${p.jurisdiction || 'sea'}_${p.permit_number || uid()}`,
@@ -2351,30 +2381,15 @@ function actorPermitToLead(p) {
     contractor_name:  p.contractor || '',
     no_gc:            p.no_gc ?? !p.contractor,
     gc_license_url:   p.gc_license_url || null,
-    owner_name:       p.owner_name  || '',
-    owner_phone:      p.owner_phone || '',
-    owner_email:      p.owner_email || '',
+    owner_name: '', owner_phone: '', owner_email: '',
     architect_name: '', owners_rep: '',
     state: 'new', timeline: [], captured_ts: now(), notes: '',
     fully_enriched: !!(p.owner_phone || p.owner_email),
-    actor_score:            p.scoring?.score           ?? null,
-    actor_urgency:          p.scoring?.urgency         ?? null,
-    actor_summary:          p.scoring?.executive_summary ?? null,
-    actor_outreach_subject: p.scoring?.outreach_subject ?? null,
-    actor_outreach_draft:   p.scoring?.outreach_draft   ?? null,
   };
   scoreLead(lead);
   return lead;
 }
 
-// Seattle DCI — actor /hunt (primary) → data.seattle.gov directo (fallback)
-// Dataset: data.seattle.gov/resource/76t5-zqzr.json (Building Permits, active 2026)
-// IMPORTANT: this dataset uses SMASHED LOWERCASE field names (no underscores).
-// Verified live field names:
-//   permitnum, permitclass, permitclassmapped, permittypemapped, permittypedesc,
-//   description, housingunits, housingunitsadded, estprojectcost,
-//   applieddate, issueddate, statuscurrent, originaladdress1, originalcity,
-//   originalzip, contractorcompanyname, link ({url: '...'})
 async function scrapeSeattleDCI() {
   const out = [];
   let rawCount = 0;
@@ -2417,6 +2432,7 @@ async function scrapeSeattleDCI() {
   try {
     logStatus('Seattle DCI · connecting to data.seattle.gov...', 'running');
     const cutoff = new Date(Date.now() - 90*86400000).toISOString().slice(0,10);
+    // Use the CORRECT field name: applieddate (smashed lowercase, no underscore)
     const url = `https://data.seattle.gov/resource/76t5-zqzr.json?$where=applieddate>'${cutoff}T00:00:00'&$limit=200`;
     const r = await fetchDirect(url, { headers: { 'Accept': 'application/json' } });
     proxyUsed = r._proxy || 'direct';
@@ -2475,10 +2491,6 @@ async function scrapeSeattleDCI() {
         application_date: p.applieddate,
         url: permitUrl,
         contractor_name: p.contractorcompanyname || '',
-        no_gc: !p.contractorcompanyname,
-        gc_license_url: p.contractorcompanyname
-          ? `https://secure.lni.wa.gov/verify/Results.aspx?NAME=${encodeURIComponent(p.contractorcompanyname)}&PHRASE=false&DTYPE=ALL`
-          : null,
         owner_name: '',  // Seattle dataset does NOT expose owner — needs Parcel lookup
         owner_phone: '',
         owner_email: '',
@@ -2506,7 +2518,7 @@ async function scrapeSeattleDCI() {
     leads: out,
     summary: `Seattle DCI: ${rawCount} fetched (${proxyUsed}) → ${categoryMatches} matched category → ${out.length} kept (${exclusionDrops} excluded)`
   };
-}
+} // end scrapeSeattleDCI
 
 // King County — unincorporated. The dataset `ymsa-z8nm` doesn't exist in 2026.
 // King County publishes permits through the Accela ACA portal, not Socrata.
@@ -2529,18 +2541,18 @@ async function scrapePierceCounty() {
   };
 }
 
-// Snohomish County — actor /hunt/snohomish (primary) → Supabase (fallback)
+// Snohomish County — actor /hunt/snohomish (Supabase) → fallback Supabase directo
 async function scrapeSnohomish() {
   const out = [];
 
-  // ── Actor primero ────────────────────────────────────────────────────────
+  // ── Intenta actor primero ──────────────────────────────────────────────
   if (ACTOR_URL && ACTOR_API_KEY) {
     try {
       logStatus('Snohomish · conectando al actor...', 'running');
       const resp = await fetchWithTimeout(
         `${ACTOR_URL}/hunt/snohomish?days=180&limit=300`,
         { headers: { 'x-api-key': ACTOR_API_KEY, 'Accept': 'application/json' } },
-        20000
+        25000
       );
       if (resp.ok) {
         const data = await resp.json();
@@ -2549,67 +2561,49 @@ async function scrapeSnohomish() {
           const lead = actorPermitToLead(p);
           if (lead) out.push(lead);
         }
-        bumpCounter('Snohomish', out.length);
-        return { leads: out, summary: `Snohomish (actor): ${out.length} leads` };
+        bumpCounter('Sno', out.length);
+        return {
+          leads: out,
+          summary: `Snohomish (actor): ${data.count || 0} raw → ${out.length} leads`
+        };
       }
     } catch (e) {
-      console.warn('Actor /hunt/snohomish falló:', e.message, '— usando Supabase fallback');
+      console.warn('Actor /hunt/snohomish falló:', e.message);
     }
   }
 
-  // ── Fallback: Supabase directo ───────────────────────────────────────────
+  // ── Fallback: Supabase directo ─────────────────────────────────────────
   try {
     logStatus('Snohomish · cargando desde Supabase...', 'running');
     const { data, error } = await _supabase
       .from('leads')
       .select('*')
       .eq('client_id', 'alkan')
-      .or('jurisdiction.ilike.%snohomish%,county.ilike.%snohomish%')
+      .or('jurisdiction.ilike.%snohomish%,address.ilike.%snohomish%')
       .limit(300);
 
     if (error) throw new Error(error.message);
     if (!data || !data.length) {
-      return { leads: [], summary: 'Snohomish: 0 leads en base de datos (configura el actor o importa CSV)' };
+      return { leads: [], summary: 'Snohomish: 0 leads en base de datos' };
     }
-
     for (const row of data) {
-      const desc = row.notes || row.description || '';
-      const fullText = [desc, row.permit_type || '', row.trade || ''].join(' ');
-      const category = matchCategory(fullText) || PROJECT_CATEGORIES.find(c => c.code === 'sfr');
-      const lead = {
-        id: 'sno_' + (row.id || uid()),
-        source: 'snohomish_csv', source_label: 'Snohomish County',
-        title: `${category ? category.label : 'Permit'} — ${(row.address || '').slice(0, 60)}`,
-        description: desc.slice(0, 800),
-        permit_type: row.permit_type || 'Building',
-        permit_number: row.permit_number || null,
-        permit_status_raw: row.status || 'Issued',
-        stage: 'issued_lt_30d', category, unit_count: null,
-        address: row.address || row.full_address || '',
-        city: row.city || '', zip: row.zip || '', county: 'SNOHOMISH',
-        value: parseFloat(row.valuation || 0) || null,
-        posted_ts: row.issue_date ? new Date(row.issue_date).getTime() : Date.now(),
-        issued_date: row.issue_date || null, application_date: null,
-        url: row.source_url || '',
-        contractor_name: row.contractor || '',
-        no_gc: !row.contractor,
-        gc_license_url: row.contractor
-          ? `https://secure.lni.wa.gov/verify/Results.aspx?NAME=${encodeURIComponent(row.contractor)}&PHRASE=false&DTYPE=ALL`
-          : null,
-        owner_name: row.owner_name || row.name || '',
-        owner_phone: row.phone || '', owner_email: row.email || '',
-        architect_name: '', owners_rep: '',
-        fully_enriched: !!(row.phone || row.email),
-        state: 'new', timeline: [], captured_ts: now(), notes: ''
-      };
-      scoreLead(lead);
-      if (!lead.is_excluded) out.push(lead);
+      const lead = actorPermitToLead({
+        permit_number: row.permit_number || row.id,
+        address: row.address, zip: row.zip,
+        description: row.description, valuation: row.valuation,
+        permit_type: row.permit_type, status: row.status,
+        issue_date: row.issue_date, application_date: row.application_date,
+        contractor: row.contractor, category: row.category,
+        jurisdiction: 'snohomish', county: 'SNOHOMISH',
+        source: 'supabase_import',
+      });
+      if (lead) out.push(lead);
     }
-  } catch(e) {
+    bumpCounter('Sno', out.length);
+    return { leads: out, summary: `Snohomish (Supabase): ${out.length} leads` };
+  } catch (e) {
     return { leads: [], summary: `Snohomish: ❌ ${e.message}` };
   }
-  bumpCounter('Snohomish', out.length);
-  return { leads: out, summary: `Snohomish (Supabase): ${out.length} leads` };
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -2793,7 +2787,7 @@ function renderEdmsResult(d) {
     `<div class="edms-field-value ${val ? '' : 'empty'}">${val ? escapeHtml(String(val)) : '— not found —'}</div></div>`;
 
   const gcBanner = d.has_gc_assigned
-    ? `<div class="edms-gc-banner has-gc">⚠ GC already named: ${escapeHtml(d.contractor_name || 'a contractor')} — later-stage, lower priority for Tim.</div>`
+    ? `<div class="edms-gc-banner has-gc">⚠ GC already named: ${escapeHtml(d.contractor_name || 'a contractor')} — later-stage, lower priority.</div>`
     : `<div class="edms-gc-banner no-gc">✓ NO GC of record — this is the early window. Reach the owner now.</div>`;
 
   resEl.innerHTML = gcBanner +
@@ -3264,11 +3258,11 @@ function renderDrawer(l) {
     </div>
 
     <div class="drawer-section">
-      <div class="drawer-section-title">DECISION-MAKER BRIEF (for Tim / Ashley)</div>
+      <div class="drawer-section-title">DECISION-MAKER BRIEF</div>
       <div class="brief-output" id="briefOutput">${escapeHtml(generateBrief(l))}</div>
       <div class="dr-actions">
         <button class="dr-btn primary" onclick="copyBrief('${l.id}')">📋 Copy brief</button>
-        <button class="dr-btn" onclick="generateEmail('${l.id}','tim')">✉ Draft email to Tim</button>
+        <button class="dr-btn" onclick="generateEmail('${l.id}','client')">✉ Draft outreach email</button>
         <button class="dr-btn" onclick="generateEmail('${l.id}','owner')">✉ Draft email to owner</button>
       </div>
     </div>
@@ -3278,7 +3272,7 @@ function renderDrawer(l) {
       <div class="dr-actions">
         <button class="dr-btn ${l.state === 'contacted' ? 'primary' : ''}" onclick="setState('${l.id}','contacted')">📞 Contacted</button>
         <button class="dr-btn ${l.state === 'qualified' ? 'primary' : ''}" onclick="setState('${l.id}','qualified')">⭐ Qualified</button>
-        <button class="dr-btn ${l.state === 'handoff' ? 'primary' : ''}" onclick="setState('${l.id}','handoff')">🤝 Handed off to Tim</button>
+        <button class="dr-btn ${l.state === 'handoff' ? 'primary' : ''}" onclick="setState('${l.id}','handoff')">🤝 Handed off to Client</button>
         <button class="dr-btn ${l.state === 'won' ? 'primary' : ''}" onclick="setState('${l.id}','won')">✓ Contract won</button>
         <button class="dr-btn danger ${l.state === 'lost' ? 'primary' : ''}" onclick="setState('${l.id}','lost')">✕ Lost</button>
       </div>
@@ -3674,7 +3668,7 @@ function setState(id, state) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// BRIEF GENERATION — the deliverable for Tim & Ashley
+// BRIEF GENERATION — weekly deliverable
 // ═══════════════════════════════════════════════════════════════════════════
 function generateBrief(l) {
   const lines = [];
@@ -3766,7 +3760,7 @@ function copyBrief(id) {
   if (!l) return;
   const text = generateBrief(l);
   navigator.clipboard.writeText(text).then(() => {
-    alert('Brief copied to clipboard. Paste into email to Tim/Ashley.');
+    alert('Brief copied to clipboard.');
   });
 }
 
@@ -3774,9 +3768,9 @@ function generateEmail(id, recipient) {
   const l = LEADS.find(x => x.id === id);
   if (!l) return;
   let subject, body;
-  if (recipient === 'tim') {
+  if (recipient === 'client') {
     subject = `New opportunity for Alkan Construction Assistant — ${l.category ? l.category.label : 'Project'} ${l.address || ''}`;
-    body = `Tim,\n\nNew opportunity worth your review. Snapshot:\n\n` +
+    body = `Hi,\n\nNew opportunity worth your review. Snapshot:\n\n` +
       `• ${l.title}\n` +
       `• ${l.category ? l.category.label : 'Project'}${l.unit_count ? ' · ' + l.unit_count + ' units' : ''}\n` +
       `• Address: ${l.address || '—'}, ${l.city || ''}\n` +
@@ -3827,8 +3821,8 @@ function exportPipelineCSV() {
   a.click();
 }
 
-function exportPipelineForAshley() {
-  // A nicer weekly brief for Ashley (BD lead)
+function exportWeeklyBrief() {
+  // Weekly pipeline brief
   const handoffs = LEADS.filter(l => l.state === 'handoff' || l.ready_for_handoff);
   const inProgress = LEADS.filter(l => ['contacted','qualified'].includes(l.state));
   const won = LEADS.filter(l => l.state === 'won');
@@ -3867,7 +3861,7 @@ function exportPipelineForAshley() {
 
   const text = lines.join('\n');
   navigator.clipboard.writeText(text).then(() => {
-    alert('Weekly brief copied to clipboard. Paste into email to Tim & Ashley.');
+    alert('Weekly brief copied to clipboard.');
   });
 }
 
@@ -4232,6 +4226,12 @@ load().then(() => {
     seedDemoLeads();
   }
   wireEdms();
+  // Restore saved Socrata token
+  const savedToken = localStorage.getItem('socrata_token');
+  if (savedToken) {
+    const inp = document.getElementById('socrataToken');
+    if (inp) inp.value = savedToken;
+  }
   rerender();
 });
 
@@ -4514,5 +4514,285 @@ function importCsvLeads() {
     </div>
   </div>
 </footer>
+<!-- ═══════════════════════════════════════════════════════════
+     ALKAN AI ASSISTANT — floating bot with full leads context
+     ═══════════════════════════════════════════════════════════ -->
+<style>
+#aib-toggle {
+  position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+  width: 52px; height: 52px; border-radius: 50%;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  border: none; cursor: pointer; box-shadow: 0 4px 20px rgba(34,197,94,.45);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; transition: transform .2s, box-shadow .2s;
+}
+#aib-toggle:hover { transform: scale(1.08); box-shadow: 0 6px 28px rgba(34,197,94,.6); }
+#aib-toggle .aib-badge {
+  position: absolute; top: -3px; right: -3px; background: #ef4444;
+  color: #fff; font-size: 10px; font-weight: 700; border-radius: 10px;
+  padding: 1px 5px; display: none;
+}
+#aib-panel {
+  position: fixed; bottom: 88px; right: 24px; z-index: 9998;
+  width: 380px; max-height: 560px;
+  background: var(--surface0, #1a1a1a); border: 1px solid var(--border, #333);
+  border-radius: 16px; box-shadow: 0 12px 48px rgba(0,0,0,.6);
+  display: none; flex-direction: column; overflow: hidden;
+  font-family: var(--font-ui, 'Inter', sans-serif);
+}
+#aib-panel.open { display: flex; }
+.aib-header {
+  padding: 12px 14px; border-bottom: 1px solid var(--border, #333);
+  display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+}
+.aib-avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; flex-shrink: 0;
+}
+.aib-title { flex: 1; }
+.aib-title strong { font-size: 13px; color: var(--ink, #e8e8e8); font-weight: 600; }
+.aib-title span { font-size: 11px; color: var(--ink-faint, #666); display: block; }
+.aib-close { background: none; border: none; color: var(--ink-faint, #666); cursor: pointer; font-size: 18px; padding: 4px; }
+.aib-close:hover { color: var(--ink, #e8e8e8); }
+.aib-quick { padding: 8px 12px; border-bottom: 1px solid var(--border, #333); display: flex; gap: 6px; flex-wrap: wrap; flex-shrink: 0; }
+.aib-chip {
+  background: var(--surface1, #252525); border: 1px solid var(--border, #333);
+  border-radius: 20px; padding: 4px 10px; font-size: 11px; color: var(--ink-muted, #aaa);
+  cursor: pointer; white-space: nowrap; transition: all .15s;
+}
+.aib-chip:hover { background: var(--green, #22c55e); color: #000; border-color: var(--green, #22c55e); }
+.aib-messages {
+  flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px;
+  min-height: 0;
+}
+.aib-messages::-webkit-scrollbar { width: 4px; }
+.aib-messages::-webkit-scrollbar-thumb { background: var(--border, #333); border-radius: 2px; }
+.aib-msg { max-width: 88%; border-radius: 12px; padding: 9px 12px; font-size: 12.5px; line-height: 1.55; }
+.aib-msg.user { background: var(--green, #22c55e); color: #000; align-self: flex-end; border-bottom-right-radius: 4px; font-weight: 500; }
+.aib-msg.bot { background: var(--surface1, #252525); color: var(--ink, #e8e8e8); align-self: flex-start; border-bottom-left-radius: 4px; }
+.aib-msg.bot a { color: var(--green, #22c55e); }
+.aib-msg.typing { opacity: .6; }
+.aib-typing-dots span { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--ink-faint, #666); margin: 0 2px; animation: aib-bounce .9s infinite; }
+.aib-typing-dots span:nth-child(2) { animation-delay: .15s; }
+.aib-typing-dots span:nth-child(3) { animation-delay: .3s; }
+@keyframes aib-bounce { 0%,60%,100% { transform: translateY(0); } 30% { transform: translateY(-5px); } }
+.aib-input-row {
+  padding: 10px 12px; border-top: 1px solid var(--border, #333);
+  display: flex; gap: 8px; align-items: flex-end; flex-shrink: 0;
+}
+#aibInput {
+  flex: 1; background: var(--surface1, #252525); border: 1px solid var(--border, #333);
+  border-radius: 10px; color: var(--ink, #e8e8e8); font-size: 12.5px;
+  padding: 8px 10px; resize: none; outline: none; font-family: inherit;
+  max-height: 80px; line-height: 1.4; transition: border-color .2s;
+}
+#aibInput:focus { border-color: var(--green, #22c55e); }
+#aibInput::placeholder { color: var(--ink-faint, #555); }
+#aibSend {
+  background: var(--green, #22c55e); border: none; border-radius: 9px;
+  color: #000; font-size: 16px; width: 34px; height: 34px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  transition: opacity .15s;
+}
+#aibSend:hover { opacity: .85; }
+#aibSend:disabled { opacity: .4; cursor: default; }
+.aib-context-pill {
+  background: var(--surface1, #252525); border: 1px solid var(--border, #333);
+  border-radius: 6px; padding: 4px 8px; font-size: 10px; color: var(--ink-faint, #666);
+  margin: 0 12px 8px; flex-shrink: 0; text-align: center;
+}
+</style>
+
+<!-- Toggle button -->
+<button id="aib-toggle" onclick="aibToggle()" title="AI Assistant">
+  🤖
+  <span class="aib-badge" id="aibBadge">1</span>
+</button>
+
+<!-- Panel -->
+<div id="aib-panel">
+  <div class="aib-header">
+    <div class="aib-avatar">🤖</div>
+    <div class="aib-title">
+      <strong>Lead Assistant</strong>
+      <span id="aibStatus">Listo · <span id="aibLeadCount">0</span> leads en contexto</span>
+    </div>
+    <button class="aib-close" onclick="aibToggle()">✕</button>
+  </div>
+
+  <div class="aib-quick" id="aibQuick">
+    <button class="aib-chip" onclick="aibQuickSend('¿Cuáles son los 5 mejores leads para llamar hoy y por qué?')">🔥 Top 5 para llamar</button>
+    <button class="aib-chip" onclick="aibQuickSend('Redacta un email de outreach para el lead con mayor score')">✉ Email top lead</button>
+    <button class="aib-chip" onclick="aibQuickSend('Dame un script de llamada en inglés para presentarme como GC interesado en el proyecto con mayor valor')">📞 Script de llamada</button>
+    <button class="aib-chip" onclick="aibQuickSend('¿Hay algún lead de multifamily o ADU sin GC asignado?')">🏘 Multifamily / ADU</button>
+    <button class="aib-chip" onclick="aibQuickSend('Resume el pipeline: cuántos leads hay por etapa y cuál es el valor total')">📊 Resumen pipeline</button>
+  </div>
+
+  <div class="aib-context-pill" id="aibContextPill">Sin leads cargados — haz un Hunt primero</div>
+
+  <div class="aib-messages" id="aibMessages">
+    <div class="aib-msg bot">
+      Hola 👋 Soy tu asistente de leads. Puedo analizar tu pipeline, decirte a quién llamar primero, redactar emails y scripts en inglés, o responder cualquier pregunta sobre los proyectos que has encontrado.<br><br>
+      Usa los botones rápidos arriba o escríbeme directamente.
+    </div>
+  </div>
+
+  <div class="aib-input-row">
+    <textarea id="aibInput" placeholder="Pregúntame algo sobre tus leads..." rows="1"
+      onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();aibSend()}"
+      oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,80)+'px'"
+    ></textarea>
+    <button id="aibSend" onclick="aibSend()">➤</button>
+  </div>
+</div>
+
+<script>
+// ── AI ASSISTANT STATE ─────────────────────────────────────────────────────
+let AIB_HISTORY = [];
+let AIB_OPEN = false;
+let AIB_THINKING = false;
+
+function aibToggle() {
+  AIB_OPEN = !AIB_OPEN;
+  document.getElementById('aib-panel').classList.toggle('open', AIB_OPEN);
+  if (AIB_OPEN) {
+    aibRefreshContext();
+    document.getElementById('aibInput').focus();
+    document.getElementById('aibBadge').style.display = 'none';
+  }
+}
+
+function aibRefreshContext() {
+  const count = (typeof LEADS !== 'undefined' ? LEADS.length : 0);
+  document.getElementById('aibLeadCount').textContent = count;
+  const pill = document.getElementById('aibContextPill');
+  if (count === 0) {
+    pill.textContent = 'Sin leads cargados — haz un Hunt primero';
+  } else {
+    const hot = LEADS.filter(l => l.score >= 60 && l.state === 'new').length;
+    const val = LEADS.reduce((s, l) => s + (l.value || 0), 0);
+    pill.textContent = `${count} leads · ${hot} calientes · valor total ~${fmtMoney(val)}`;
+  }
+}
+
+function aibBuildContext() {
+  if (typeof LEADS === 'undefined' || !LEADS.length) return 'No hay leads cargados todavía.';
+  // Send top 30 by score to keep context tight
+  const top = [...LEADS].sort((a,b) => (b.score||0)-(a.score||0)).slice(0, 30);
+  return top.map((l, i) =>
+    `[${i+1}] Score:${l.score||0} | ${l.stage||'?'} | ${l.city||''} | ${l.permit_type||''} | ${(l.description||'').slice(0,120)} | Value:${l.value ? fmtMoney(l.value) : 'N/A'} | Status:${l.permit_status_raw||''} | Contractor:${l.contractor_name||'none'} | Owner:${l.owner_name||'?'} | Address:${l.address||''} | State:${l.state||'new'}`
+  ).join('\n');
+}
+
+const AIB_SYSTEM = `You are a construction lead intelligence assistant embedded in the Alkan Lead Hunter app.
+You have access to the user's current lead pipeline — a list of building permits scraped from public databases.
+Your job is to help the user (a General Contractor's business development team) prioritize leads, draft outreach, and make smart decisions.
+
+Rules:
+- Be direct and actionable. No fluff.
+- When drafting emails or call scripts, write them in professional American English ready to copy-paste.
+- When ranking leads, explain WHY based on stage (pre-permit > application > issued), value, unit count, and whether a GC is already assigned.
+- The best leads are: pre-permit or in-review stage, no GC assigned yet, value $200K–$2M, SFR/ADU/townhome/multifamily under 30 units or commercial TI.
+- Respond in the same language the user writes in (Spanish or English).
+- Keep answers concise but complete.`;
+
+async function aibSend(overrideText) {
+  if (AIB_THINKING) return;
+  const input = document.getElementById('aibInput');
+  const text = (overrideText || input.value).trim();
+  if (!text) return;
+
+  // Add user message
+  aibAddMessage('user', text);
+  if (!overrideText) { input.value = ''; input.style.height = 'auto'; }
+  AIB_HISTORY.push({ role: 'user', content: text });
+
+  // Add typing indicator
+  const typingId = 'aib-typing-' + Date.now();
+  aibAddMessage('bot', '<div class="aib-typing-dots"><span></span><span></span><span></span></div>', typingId, true);
+
+  AIB_THINKING = true;
+  document.getElementById('aibSend').disabled = true;
+  document.getElementById('aibStatus').textContent = 'Pensando...';
+
+  // Build messages with lead context injected into first user message
+  const leadsContext = aibBuildContext();
+  const messagesForApi = AIB_HISTORY.map((m, i) => {
+    if (i === 0 && m.role === 'user') {
+      return { role: 'user', content: `CURRENT LEADS PIPELINE:\n${leadsContext}\n\n---\nUSER QUESTION: ${m.content}` };
+    }
+    return m;
+  });
+
+  try {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: AIB_SYSTEM,
+        messages: messagesForApi
+      })
+    });
+    const data = await r.json();
+    const reply = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('\n');
+    if (!reply) throw new Error(data.error?.message || 'Empty response');
+
+    AIB_HISTORY.push({ role: 'assistant', content: reply });
+
+    // Replace typing with real response
+    const typingEl = document.getElementById(typingId);
+    if (typingEl) typingEl.remove();
+    aibAddMessage('bot', aibFormat(reply));
+
+  } catch(e) {
+    const typingEl = document.getElementById(typingId);
+    if (typingEl) typingEl.remove();
+    aibAddMessage('bot', `❌ Error: ${e.message}. Verifica que la API de Claude esté activa.`);
+  }
+
+  AIB_THINKING = false;
+  document.getElementById('aibSend').disabled = false;
+  document.getElementById('aibStatus').textContent = `Listo · ${(typeof LEADS !== 'undefined' ? LEADS.length : 0)} leads en contexto`;
+}
+
+function aibQuickSend(text) {
+  document.getElementById('aibInput').value = text;
+  aibSend();
+}
+
+function aibAddMessage(role, html, id, isTyping) {
+  const msgs = document.getElementById('aibMessages');
+  const div = document.createElement('div');
+  div.className = 'aib-msg ' + role + (isTyping ? ' typing' : '');
+  if (id) div.id = id;
+  div.innerHTML = html;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function aibFormat(text) {
+  // Basic markdown-ish formatting for readability
+  return text
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/`(.+?)`/g, '<code style="background:rgba(255,255,255,.1);padding:1px 4px;border-radius:3px;font-size:11px">$1</code>')
+    .replace(/^#{1,3}\s(.+)$/gm, '<strong style="color:var(--green,#22c55e)">$1</strong>')
+    .replace(/^[-•]\s(.+)$/gm, '• $1')
+    .replace(/\n\n/g, '<br><br>')
+    .replace(/\n/g, '<br>');
+}
+
+// Refresh context count whenever leads change (hook into rerender)
+const _origRerender = typeof rerender === 'function' ? rerender : null;
+if (_origRerender) {
+  window.addEventListener('leads-updated', () => { if (AIB_OPEN) aibRefreshContext(); });
+}
+// Also refresh on panel open — covered in aibToggle
+</script>
+
 </body>
 </html>
