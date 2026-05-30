@@ -1545,22 +1545,16 @@ select.lead-state-select {
         <div class="hunt-title">Pipeline opportunities <em>before</em> they have a GC.</div>
         <div class="source-chips" id="sourceChips">
           <!-- Tier 1 — Active API/Socrata -->
-          <button class="chip active" data-source="seattle_dci_application"><span class="icon">🏗</span> Seattle DCI <span class="chip-help">Socrata live</span></button>
-          <button class="chip active" data-source="king_county"><span class="icon">🏛</span> King County <span class="chip-help">unincorporated</span></button>
-          <button class="chip active" data-source="pierce_county"><span class="icon">🏛</span> Pierce County <span class="chip-help">Alkan's backyard</span></button>
+          <button class="chip active" data-source="houston_tx"><span class="icon">🤠</span> Houston TX <span class="chip-help">#1 EE.UU. · Socrata live</span></button>
           <button class="chip active" data-source="snohomish_county"><span class="icon">🏛</span> Snohomish <span class="chip-help">N. Puget Sound</span></button>
-          <!-- Tier 2 — MyBuildingPermit hub -->
-          <button class="chip" data-source="mybuildingpermit"><span class="icon">🏙</span> MyBuildingPermit <span class="chip-help">Bellevue · Renton · Kirkland +12</span></button>
-          <!-- Tier 2 — Individual portals -->
-          <button class="chip" data-source="clark_county"><span class="icon">🏛</span> Clark Co. <span class="chip-help">Vancouver WA</span></button>
-          <button class="chip" data-source="spokane"><span class="icon">🏛</span> Spokane <span class="chip-help">city + county</span></button>
-          <button class="chip" data-source="thurston_county"><span class="icon">🏛</span> Thurston <span class="chip-help">Olympia area</span></button>
-          <button class="chip" data-source="whatcom_skagit"><span class="icon">🏛</span> Whatcom/Skagit <span class="chip-help">Tyler platform</span></button>
-          <button class="chip" data-source="kitsap_county"><span class="icon">🚢</span> Kitsap <span class="chip-help">Bremerton</span></button>
-          <button class="chip" data-source="yakima_benton"><span class="icon">🏜</span> Yakima/Tri-Cities <span class="chip-help">Eastern WA</span></button>
-          <!-- State-level -->
-          <button class="chip" data-source="lni_wa"><span class="icon">📋</span> WA L&amp;I <span class="chip-help">contractor verify</span></button>
-          <button class="chip" data-source="affordable_housing"><span class="icon">🏘</span> Affordable Housing <span class="chip-help">WSHFC / KCHA</span></button>
+          <!-- Tier 2 — Manual portals -->
+          <button class="chip" data-source="harris_county"><span class="icon">🏛</span> Harris County <span class="chip-help">Houston unincorporated</span></button>
+          <button class="chip" data-source="fort_bend"><span class="icon">🏛</span> Fort Bend <span class="chip-help">SW Houston suburbs</span></button>
+          <button class="chip" data-source="montgomery_tx"><span class="icon">🏛</span> Montgomery <span class="chip-help">N. Houston suburbs</span></button>
+          <button class="chip" data-source="galveston"><span class="icon">🌊</span> Galveston <span class="chip-help">coastal TX</span></button>
+          <button class="chip" data-source="brazoria"><span class="icon">🏛</span> Brazoria <span class="chip-help">S. Houston suburbs</span></button>
+          <!-- TX Statewide -->
+          <button class="chip" data-source="tdlr_tx"><span class="icon">📋</span> TX TDLR <span class="chip-help">contractor verify TX</span></button>
         </div>
       </div>
       <div style="margin-bottom:8px">
@@ -1596,16 +1590,13 @@ select.lead-state-select {
       </div>
       <div class="status-msg" id="statusMsg">Select sources and click "Start Hunt" — pre-permit & application-stage opportunities only.</div>
       <div class="status-stats">
-        <span>sea: <b id="ctSeattle">0</b></span>
-        <span>kc: <b id="ctKC">0</b></span>
-        <span>pc: <b id="ctPC">0</b></span>
+        <span>hou: <b id="ctHouston">0</b></span>
         <span>sno: <b id="ctSno">0</b></span>
-        <span>mbp: <b id="ctMBP">0</b></span>
-        <span>clk: <b id="ctClark">0</b></span>
-        <span>spo: <b id="ctSpokane">0</b></span>
-        <span>thu: <b id="ctThurston">0</b></span>
-        <span>w/s: <b id="ctWhatcom">0</b></span>
-        <span>kit: <b id="ctKitsap">0</b></span>
+        <span>harris: <b id="ctHarris">0</b></span>
+        <span>ftbend: <b id="ctFtBend">0</b></span>
+        <span>mont: <b id="ctMont">0</b></span>
+        <span>galv: <b id="ctGalveston">0</b></span>
+        <span>braz: <b id="ctBrazoria">0</b></span>
       </div>
     </div>
 
@@ -2346,9 +2337,11 @@ async function fetchDirect(url, opts = {}) {
 }
 
 function bumpCounter(label, n) {
-  const ids = { Seattle: 'ctSeattle', KC: 'ctKC', PC: 'ctPC', Sno: 'ctSno',
-                MBP: 'ctMBP', Clark: 'ctClark', Spokane: 'ctSpokane',
-                Thurston: 'ctThurston', Whatcom: 'ctWhatcom', Kitsap: 'ctKitsap' };
+  const ids = {
+    Houston: 'ctHouston', Sno: 'ctSno',
+    Harris: 'ctHarris', FtBend: 'ctFtBend', Mont: 'ctMont',
+    Galveston: 'ctGalveston', Brazoria: 'ctBrazoria',
+  };
   const id = ids[label];
   if (id) {
     const el = document.getElementById(id);
@@ -2374,6 +2367,12 @@ function logStatus(msg, state) {
 //   description, housingunits, housingunitsadded, estprojectcost,
 //   applieddate, issueddate, statuscurrent, originaladdress1, originalcity,
 //   originalzip, contractorcompanyname, link ({url: '...'})
+// ── Houston TX permit URL builder ────────────────────────────────────────────
+function houstonPermitUrl(permitNum) {
+  if (!permitNum) return '';
+  return `https://www.houstonpermittingcenter.org/wps/portal/externalresources/permit/${encodeURIComponent(permitNum)}`;
+}
+
 // ── actorPermitToLead — convierte un permit del actor al shape de LEADS ──────
 function actorPermitToLead(p) {
   const fullText = `${p.description || ''} ${p.permit_type || ''}`;
@@ -2410,7 +2409,9 @@ function actorPermitToLead(p) {
     issued_date:      p.issue_date || null,
     application_date: p.application_date || null,
     url: p.permit_number
-      ? `https://cosaccela.seattle.gov/Portal/Cap/CapDetail.aspx?Module=DPD&capID1=${p.permit_number}`
+      ? (p.jurisdiction === 'houston'
+          ? houstonPermitUrl(p.permit_number)
+          : `https://cosaccela.seattle.gov/Portal/Cap/CapDetail.aspx?Module=DPD&capID1=${p.permit_number}`)
       : '',
     contractor_name:  p.contractor || '',
     no_gc:            p.no_gc ?? !p.contractor,
@@ -2424,6 +2425,160 @@ function actorPermitToLead(p) {
   return lead;
 }
 
+// ── Houston TX — actor /hunt (primary) → data.houstontx.gov (fallback) ──────
+// #1 permit volume city in the US. Roofing demand driven by hail/hurricane season.
+// Actor auto-tries 4 dataset IDs: m56y-a7qz, 37rz-92jh, k5ry-zrbj, epcq-zswe
+async function scrapeHoustonTX() {
+  const out = [];
+  let rawCount = 0;
+  let categoryMatches = 0;
+  let exclusionDrops = 0;
+
+  // ── Actor first ────────────────────────────────────────────────────────────
+  if (ACTOR_URL && ACTOR_API_KEY) {
+    try {
+      logStatus('Houston TX · conectando al actor...', 'running');
+      const resp = await fetchWithTimeout(
+        `${ACTOR_URL}/hunt?days=180&limit=500&min_value=0`,
+        { headers: { 'x-api-key': ACTOR_API_KEY, 'Accept': 'application/json' } },
+        35000
+      );
+      if (resp.ok) {
+        const data = await resp.json();
+        rawCount = data.total_raw || 0;
+        logStatus(`Houston TX · actor devolvió ${data.count} permisos (dataset: ${data.dataset || 'auto'})`, 'running');
+        for (const p of (data.permits || [])) {
+          if (STOPFLAG) break;
+          const lead = actorPermitToLead(p);
+          if (lead) { categoryMatches++; out.push(lead); }
+          else exclusionDrops++;
+        }
+        bumpCounter('Houston', out.length);
+        return {
+          leads: out,
+          summary: `Houston TX (actor): ${rawCount} raw → ${categoryMatches} categorizados → ${out.length} leads (${exclusionDrops} excluidos)`
+        };
+      }
+      console.warn('Actor /hunt retornó', resp.status);
+    } catch (e) {
+      console.warn('Actor /hunt falló:', e.message, '— usando fallback directo');
+    }
+  }
+
+  // ── Fallback: Houston Open Data directo ───────────────────────────────────
+  const cutoff = new Date(Date.now() - 180*86400000).toISOString().slice(0,10);
+  const DATASETS = [
+    { id: 'm56y-a7qz', dateField: 'applicationdate' },
+    { id: '37rz-92jh', dateField: 'date_filed' },
+    { id: 'k5ry-zrbj', dateField: 'filed_date' },
+    { id: 'epcq-zswe', dateField: 'applicationdate' },
+  ];
+
+  let rows = null;
+  for (const ds of DATASETS) {
+    try {
+      logStatus(`Houston TX · probando dataset ${ds.id}...`, 'running');
+      const url = `https://data.houstontx.gov/resource/${ds.id}.json`
+                + `?$where=${ds.dateField}>'${cutoff}T00:00:00'`
+                + `&$order=${ds.dateField}%20DESC&$limit=500`;
+      const r = await fetchWithTimeout(url, { headers: { 'Accept': 'application/json' } }, 25000);
+      if (!r.ok) continue;
+      const data = await r.json();
+      if (Array.isArray(data) && data.length > 0) { rows = data; break; }
+    } catch(e) { continue; }
+  }
+
+  if (!rows) {
+    return { leads: [], summary: 'Houston TX: ❌ todos los datasets fallaron (red o límite de tasa)' };
+  }
+
+  rawCount = rows.length;
+  logStatus(`Houston TX fallback: ${rawCount} permisos, filtrando...`, 'running');
+
+  for (const p of rows) {
+    if (STOPFLAG) break;
+    const desc       = p.workdescription || p.description || p.type_of_work || '';
+    const permitType = p.permittype || p.permit_type || '';
+    const fullText   = `${desc} ${permitType}`;
+    const category   = matchCategory(fullText);
+    if (!category) { exclusionDrops++; continue; }
+    categoryMatches++;
+    if (isExcluded(fullText)) { exclusionDrops++; continue; }
+
+    const permitNum  = p.permitnumber || p.permit_no || p.permitno || null;
+    const address    = p.address || p.site_address || p.address_line_1 || '';
+    const valuation  = parseFloat(p.declaredvaluation || p.estimated_cost || '0') || null;
+    const contractor = p.contractorname || p.contractor_company || null;
+    const stage      = classifyStage(p.permit_status || p.status, p.issuedate || p.date_issued);
+
+    const lead = {
+      id: `hou_${permitNum || uid()}`,
+      source: 'houston_open_data',
+      source_label: 'Houston TX',
+      title: `${category.label} — ${address.slice(0,60)}`,
+      description: desc.slice(0,800),
+      permit_type: permitType,
+      permit_number: permitNum,
+      permit_status_raw: p.permit_status || p.status || '',
+      stage,
+      category,
+      unit_count: extractUnitCount(fullText),
+      address,
+      city: 'Houston',
+      zip: p.zip || p.zipcode || '',
+      county: 'HARRIS',
+      value: valuation,
+      posted_ts: p.applicationdate || p.date_filed
+        ? new Date(p.applicationdate || p.date_filed).getTime() : Date.now(),
+      issued_date: p.issuedate || p.date_issued || null,
+      application_date: p.applicationdate || p.date_filed || null,
+      url: houstonPermitUrl(permitNum),
+      contractor_name: contractor || '',
+      no_gc: !contractor,
+      gc_license_url: contractor
+        ? `https://www.tdlr.texas.gov/civerify/licensesearch.asp?search_type=name&name=${encodeURIComponent(contractor)}`
+        : null,
+      owner_name: '', owner_phone: '', owner_email: '',
+      architect_name: '', owners_rep: '',
+      state: 'new', timeline: [], captured_ts: now(), notes: '',
+      fully_enriched: false,
+    };
+    scoreLead(lead);
+    out.push(lead);
+  }
+
+  bumpCounter('Houston', out.length);
+  return {
+    leads: out,
+    summary: `Houston TX (directo): ${rawCount} raw → ${categoryMatches} cat → ${out.length} leads`
+  };
+}
+
+// ── Houston area county stubs (portal manual) ─────────────────────────────
+async function scrapeHarrisCounty() {
+  await sleep(200);
+  return { leads: [], summary: 'Harris County: ⏸ portal manual → https://www.hcad.org' };
+}
+async function scrapeFortBend() {
+  await sleep(200);
+  return { leads: [], summary: 'Fort Bend: ⏸ portal manual → https://www.fbcad.org' };
+}
+async function scrapeMontgomeryTX() {
+  await sleep(200);
+  return { leads: [], summary: 'Montgomery TX: ⏸ portal manual → https://www.mcad-tx.org' };
+}
+async function scrapeGalveston() {
+  await sleep(200);
+  return { leads: [], summary: 'Galveston: ⏸ portal manual → https://www.galvestoncad.org' };
+}
+async function scrapeBrazoria() {
+  await sleep(200);
+  return { leads: [], summary: 'Brazoria: ⏸ portal manual → https://www.brazoriacad.org' };
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// LEGACY — mantenida para referencia / posible re-activación
+// ────────────────────────────────────────────────────────────────────────────
 async function scrapeSeattleDCI() {
   const out = [];
   let rawCount = 0;
@@ -2958,16 +3113,13 @@ async function startHunt() {
   };
 
   try {
-    if (sources.includes('seattle_dci_application') && !STOPFLAG) mergeResult(await scrapeSeattleDCI(), 'Seattle');
-    if (sources.includes('king_county') && !STOPFLAG) mergeResult(await scrapeKingCounty(), 'KC');
-    if (sources.includes('pierce_county') && !STOPFLAG) mergeResult(await scrapePierceCounty(), 'PC');
+    if (sources.includes('houston_tx') && !STOPFLAG) mergeResult(await scrapeHoustonTX(), 'Houston');
     if (sources.includes('snohomish_county') && !STOPFLAG) mergeResult(await scrapeSnohomish(), 'Sno');
-    if (sources.includes('mybuildingpermit') && !STOPFLAG) mergeResult(await scrapeMyBuildingPermit(), 'MBP');
-    if (sources.includes('clark_county') && !STOPFLAG) mergeResult(await scrapeClarkCounty(), 'Clark');
-    if (sources.includes('spokane') && !STOPFLAG) mergeResult(await scrapeSpokane(), 'Spokane');
-    if (sources.includes('thurston_county') && !STOPFLAG) mergeResult(await scrapeThurston(), 'Thurston');
-    if (sources.includes('whatcom_skagit') && !STOPFLAG) mergeResult(await scrapeWhatcomSkagit(), 'Whatcom');
-    if (sources.includes('kitsap_county') && !STOPFLAG) mergeResult(await scrapeKitsap(), 'Kitsap');
+    if (sources.includes('harris_county') && !STOPFLAG) mergeResult(await scrapeHarrisCounty(), 'Harris');
+    if (sources.includes('fort_bend') && !STOPFLAG) mergeResult(await scrapeFortBend(), 'FtBend');
+    if (sources.includes('montgomery_tx') && !STOPFLAG) mergeResult(await scrapeMontgomeryTX(), 'Mont');
+    if (sources.includes('galveston') && !STOPFLAG) mergeResult(await scrapeGalveston(), 'Galveston');
+    if (sources.includes('brazoria') && !STOPFLAG) mergeResult(await scrapeBrazoria(), 'Brazoria');
   } catch(e) {
     console.error(e);
     sourceSummaries.push(`❌ Hunt error: ${e.message}`);
