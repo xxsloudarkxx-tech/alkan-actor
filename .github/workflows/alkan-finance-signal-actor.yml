@@ -1,0 +1,62 @@
+name: Alkan Finance Signal Actor CI
+
+# Validates the alkan-finance-signal-actor only. Runs no live Socrata
+# integration tests, never runs the Actor against live sources, and requires
+# no secrets. Nothing is deployed and no artifacts are uploaded.
+
+on:
+  pull_request:
+    paths:
+      - 'alkan-finance-signal-actor/**'
+      - '.github/workflows/alkan-finance-signal-actor.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'alkan-finance-signal-actor/**'
+      - '.github/workflows/alkan-finance-signal-actor.yml'
+
+# Least privilege: the job only needs to read the repository.
+permissions:
+  contents: read
+
+# Cancel superseded runs for the same ref.
+concurrency:
+  group: alkan-finance-actor-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate Actor
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: alkan-finance-signal-actor
+    env:
+      # Belt-and-suspenders: keep the opt-in live Socrata tests skipped in CI.
+      RUN_SOCRATA_INTEGRATION: '0'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js (LTS 22)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: alkan-finance-signal-actor/package-lock.json
+
+      - name: Install dependencies (clean, from lockfile)
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests (no live integration)
+        run: npm test
+
+      - name: Build validation
+        run: npm run build
