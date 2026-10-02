@@ -1,0 +1,20 @@
+[
+  {
+    "programId": "working-capital",
+    "requiredFields": [
+      "timeInBusinessMonths",
+      "averageMonthlyDeposits",
+      "personalCreditRange"
+    ],
+    "rules": []
+  },
+  {
+    "programId": "equipment-financing",
+    "requiredFields": [
+      "timeInBusinessMonths",
+      "equipmentQuoteAmount",
+      "personalCreditRange"
+    ],
+    "rules": []
+  }
+]

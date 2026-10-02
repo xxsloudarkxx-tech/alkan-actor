@@ -1,0 +1,115 @@
+{
+  "title": "ALKAN Public Finance Signal — Input",
+  "description": "Retrieves PUBLIC Seattle building-permit records and produces explainable public project activity signals. No creditworthiness is determined. Delivery to ALKAN only occurs when sendToAlkan=true AND dryRun=false AND the required secrets are configured.",
+  "type": "object",
+  "schemaVersion": 1,
+  "properties": {
+    "jurisdiction": {
+      "title": "Jurisdiction",
+      "description": "Only \"seattle\" is supported in this version.",
+      "type": "string",
+      "editor": "select",
+      "enum": ["seattle"],
+      "enumTitles": ["Seattle, WA (DCI)"],
+      "default": "seattle"
+    },
+    "dateFrom": {
+      "title": "Date from (YYYY-MM-DD)",
+      "description": "Start of the application/issue date window (inclusive). Must not be after Date to.",
+      "type": "string",
+      "editor": "textfield",
+      "example": "2026-09-01"
+    },
+    "dateTo": {
+      "title": "Date to (YYYY-MM-DD)",
+      "description": "End of the application/issue date window (inclusive).",
+      "type": "string",
+      "editor": "textfield",
+      "example": "2026-10-02"
+    },
+    "updatedSince": {
+      "title": "Updated since (ISO-8601)",
+      "description": "Incremental mode: only fetch records whose source update timestamp is newer than this. Leave empty to use the stored checkpoint, or a date window.",
+      "type": "string",
+      "editor": "textfield",
+      "nullable": true
+    },
+    "permitStatuses": {
+      "title": "Permit statuses filter",
+      "description": "Optional list of permit statuses to include (case-insensitive). Empty = all statuses.",
+      "type": "array",
+      "editor": "stringList",
+      "default": []
+    },
+    "permitTypes": {
+      "title": "Permit types filter",
+      "description": "Optional list of permit type keywords to include (matched against the official permit type). Empty = all types.",
+      "type": "array",
+      "editor": "stringList",
+      "default": []
+    },
+    "tradeKeywords": {
+      "title": "Trade keywords",
+      "description": "Keywords used for deterministic construction-scope classification of the official permit description. Does not filter records.",
+      "type": "array",
+      "editor": "stringList",
+      "default": [
+        "construction",
+        "remodel",
+        "tenant improvement",
+        "commercial",
+        "roof",
+        "drywall",
+        "electrical",
+        "mechanical",
+        "concrete"
+      ]
+    },
+    "minDeclaredValue": {
+      "title": "Minimum declared project value",
+      "description": "Only include records whose official declared project value is >= this amount. 0 = no minimum. Must be >= 0.",
+      "type": "integer",
+      "editor": "number",
+      "default": 0,
+      "minimum": 0
+    },
+    "maxRecords": {
+      "title": "Max records",
+      "description": "Maximum number of records to process this run. Default 100, hard maximum 500.",
+      "type": "integer",
+      "editor": "number",
+      "default": 100,
+      "minimum": 1,
+      "maximum": 500
+    },
+    "allowBackfill": {
+      "title": "Allow backfill (> 90 day range)",
+      "description": "Explicit backfill flag. Required to request a date range longer than 90 days. Default false.",
+      "type": "boolean",
+      "editor": "checkbox",
+      "default": false
+    },
+    "includeContacts": {
+      "title": "Include contact details",
+      "description": "If false (default), phone/email are removed from output; only contact role and availability are preserved.",
+      "type": "boolean",
+      "editor": "checkbox",
+      "default": false
+    },
+    "sendToAlkan": {
+      "title": "Send to ALKAN",
+      "description": "If true AND dryRun is false AND secrets are configured, deliver signed batches to the ALKAN ingestion endpoint.",
+      "type": "boolean",
+      "editor": "checkbox",
+      "default": false
+    },
+    "dryRun": {
+      "title": "Dry run",
+      "description": "If true (default), never deliver to ALKAN — only push sanitized records to the Apify dataset.",
+      "type": "boolean",
+      "editor": "checkbox",
+      "default": true
+    }
+  },
+  "required": ["jurisdiction"]
+}

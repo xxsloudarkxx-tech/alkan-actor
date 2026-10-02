@@ -1,0 +1,28 @@
+{
+  // Real static type checking for the JS + JSDoc source. We keep checkJs on
+  // (catches bad imports, missing exports, wrong property access on typed
+  // values, call-arity errors, unreachable returns) but do not turn on the
+  // strict flags that are impractical for lightly-annotated JS (implicit-any on
+  // every untyped param, unknown catch variables). This is "strict where
+  // practical" — not a disabled checker.
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "types": ["node"],
+    "strict": false,
+    "noImplicitAny": false,
+    "useUnknownInCatchVariables": false,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["src/**/*.js", "tests/**/*.js", "scripts/**/*.mjs"],
+  "exclude": ["node_modules", "storage"]
+}

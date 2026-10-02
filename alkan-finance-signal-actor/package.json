@@ -1,0 +1,27 @@
+{
+  "name": "alkan-finance-signal-actor",
+  "version": "1.0.0",
+  "description": "Private Apify Actor: retrieves public Seattle construction permit records, normalizes them, derives an explainable public project activity signal, and delivers safe financing prospect signals to ALKAN's private ingestion endpoint. Not a credit decision system.",
+  "type": "module",
+  "main": "src/main.js",
+  "private": true,
+  "scripts": {
+    "start": "node src/main.js",
+    "test": "node --test tests/*.test.js",
+    "test:integration": "node scripts/run-integration.mjs",
+    "lint": "node --check src/main.js && node scripts/lint-all.mjs",
+    "typecheck": "tsc -p tsconfig.json",
+    "build": "node scripts/validate-build.mjs",
+    "dry-run": "node src/main.js"
+  },
+  "dependencies": {
+    "apify": "^3.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
