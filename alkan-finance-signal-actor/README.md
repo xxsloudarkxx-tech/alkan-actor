@@ -174,6 +174,76 @@ apify push                   # builds the Docker image and uploads the Actor
 Then, in the Apify Console, set the **secret environment variables** (Section 9)
 and keep the Actor **private**.
 
+## Apify deployment from Git
+
+This Actor lives in the `alkan-finance-signal-actor/` **subdirectory** of a larger
+repository. When deploying from Git, Apify must be pointed at that subdirectory —
+**not** the repository root.
+
+### Testing the pull-request branch
+
+Use this Git source URL:
+
+```
+https://github.com/xxsloudarkxx-tech/alkan-actor#feature/alkan-finance-signal-actor-pr:alkan-finance-signal-actor
+```
+
+In this URL (the part after `#` is `branch:subdirectory`):
+
+- `feature/alkan-finance-signal-actor-pr` is the Git branch.
+- `alkan-finance-signal-actor` is the source subdirectory **and** the Docker build
+  context.
+- Selecting the repository **root is incorrect** — the root is not an Actor.
+- A correct build uses `alkan-finance-signal-actor/Dockerfile` (base image
+  `apify/actor-node:20`, dependencies installed with **npm**).
+- A correct run starts `node src/main.js` (the Actor entry point).
+- The build/run logs **must not** show Next.js, `pnpm`, `next.config.ts`, or
+  `localhost:3000`. Those indicate Apify is building the wrong source (the
+  repository root) rather than this subdirectory.
+
+### After merging to main
+
+Once the pull request is merged, use:
+
+```
+https://github.com/xxsloudarkxx-tech/alkan-actor#main:alkan-finance-signal-actor
+```
+
+Only the **branch segment** changes (`feature/alkan-finance-signal-actor-pr` →
+`main`); the `:alkan-finance-signal-actor` subdirectory stays the same.
+
+### Safe first run
+
+Trigger a **newly created build** and run it with exactly this input:
+
+```json
+{
+  "allowBackfill": false,
+  "dateFrom": "2026-09-25",
+  "dateTo": "2026-10-02",
+  "dryRun": true,
+  "includeContacts": false,
+  "jurisdiction": "seattle",
+  "maxRecords": 10,
+  "sendToAlkan": false
+}
+```
+
+This run:
+
+- retrieves at most **10** public records;
+- does **not** include contacts;
+- does **not** deliver records to ALKAN;
+- does **not** perform a backfill;
+- must use a **newly created build** (so the corrected Git source takes effect).
+
+### Troubleshooting
+
+If the logs show **Next.js**, **pnpm**, **`next.config.ts`**, or
+**`localhost:3000`**, stop the run and correct the Git source URL so it targets
+the `alkan-finance-signal-actor` subdirectory (as shown above). Do **not** install
+pnpm and do **not** modify the repository-root application.
+
 ## 9. Required secrets
 
 Set these as Actor **secret environment variables** (never in run input, never
