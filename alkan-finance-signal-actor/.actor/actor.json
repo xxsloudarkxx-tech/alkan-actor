@@ -1,0 +1,12 @@
+{
+  "actorSpecification": 1,
+  "name": "alkan-finance-signal-actor",
+  "title": "ALKAN – Public Finance Signal (Seattle Permits)",
+  "description": "Retrieves public Seattle construction permit records via the official Socrata Open Data API, normalizes them, derives a transparent public project activity signal, and delivers safe, explainable financing prospect signals to ALKAN's private ingestion endpoint. This Actor does NOT determine creditworthiness, approve financing, estimate credit scores, or process bank data.",
+  "version": "1.0",
+  "input": "./input_schema.json",
+  "storages": {
+    "dataset": "./dataset_schema.json"
+  },
+  "dockerfile": "../Dockerfile"
+}

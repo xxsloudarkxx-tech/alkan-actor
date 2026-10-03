@@ -1,0 +1,61 @@
+{
+  "actorSpecification": 1,
+  "fields": {
+    "title": "Public project activity record",
+    "type": "object",
+    "description": "Sanitized public permit record with an explainable public project activity signal. Contains NO bank data, credit scores, tax IDs, SSNs, Plaid tokens, or (when includeContacts=false) contact phone/email.",
+    "properties": {
+      "permitNumber": { "type": "string" },
+      "status": { "type": "string" },
+      "permitType": { "type": "string" },
+      "permitClass": { "type": "string" },
+      "description": { "type": "string" },
+      "declaredProjectValue": { "type": "number" },
+      "address": { "type": "object" },
+      "entityRole": { "type": "string" },
+      "businessContactAvailable": { "type": "boolean" },
+      "contacts": { "type": "array" },
+      "publicActivityScore": { "type": "integer" },
+      "publicActivityBand": { "type": "string" },
+      "reasons": { "type": "array" },
+      "warnings": { "type": "array" },
+      "possibleUseCases": { "type": "array" },
+      "fundingMatch": { "type": "object" },
+      "financialVerificationRequired": { "type": "boolean" },
+      "manualReviewRequired": { "type": "boolean" },
+      "officialSourceUrl": { "type": "string" },
+      "researchLinks": { "type": "array" },
+      "observedAt": { "type": "string" }
+    }
+  },
+  "views": {
+    "overview": {
+      "title": "Public activity overview",
+      "transformation": {
+        "fields": [
+          "permitNumber",
+          "status",
+          "permitType",
+          "declaredProjectValue",
+          "entityRole",
+          "publicActivityScore",
+          "publicActivityBand",
+          "observedAt"
+        ]
+      },
+      "display": {
+        "component": "table",
+        "properties": {
+          "permitNumber": { "label": "Permit #" },
+          "status": { "label": "Status" },
+          "permitType": { "label": "Type" },
+          "declaredProjectValue": { "label": "Declared value" },
+          "entityRole": { "label": "Entity role" },
+          "publicActivityScore": { "label": "Activity score" },
+          "publicActivityBand": { "label": "Band" },
+          "observedAt": { "label": "Observed" }
+        }
+      }
+    }
+  }
+}
