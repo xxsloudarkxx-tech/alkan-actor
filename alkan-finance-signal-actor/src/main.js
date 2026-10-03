@@ -21,6 +21,9 @@ import { logger } from './util/logger.js';
 import { fetchPermits, SOURCE_SYSTEM } from './sources/seattle-building-permits.js';
 import { normalizePermit } from './normalization/normalize-permit.js';
 import { buildFinanceSignal } from './signals/build-finance-signal.js';
+import { classifyProjectStage } from './signals/project-stage.js';
+import { buildProspectReadiness } from './signals/prospect-readiness.js';
+import { extractRelatedProject } from './signals/related-project.js';
 import { buildFundingMatch } from './matching/funding-programs.js';
 import { buildDatasetRecord, buildDeliveryRecord } from './sanitize/sanitize-record.js';
 import { keysForNormalized } from './state/dedupe.js';
@@ -117,6 +120,9 @@ async function run() {
     lowActivity: 0,
     missingEntity: 0,
     unclearRole: 0,
+    identifiableBusiness: 0,
+    researchRequired: 0,
+    notActionable: 0,
     delivered: 0,
     deliveryFailed: 0,
     estimatedApiRequests,
@@ -144,6 +150,14 @@ async function run() {
     const signal = buildFinanceSignal(normalized, { observedAt, tradeKeywords: input.tradeKeywords });
     const fundingMatch = buildFundingMatch(normalized);
 
+    // Deterministic lifecycle stage + prospect readiness (both SEPARATE from the
+    // public activity score; neither is a credit/financing conclusion).
+    const stage = classifyProjectStage(normalized.permit.status);
+    for (const w of stage.warnings) if (!signal.warnings.includes(w)) signal.warnings.push(w);
+    const prospectReadiness = buildProspectReadiness(normalized, { projectStage: stage.stage });
+    const relatedProject = extractRelatedProject(normalized);
+    const extras = { projectStage: stage.stage, prospectReadiness, relatedProject };
+
     // Stats.
     summary.normalized += 1;
     if (signal.band === 'high') summary.highActivity += 1;
@@ -151,13 +165,16 @@ async function run() {
     else summary.lowActivity += 1;
     if (!normalized.entities.contractorName && !normalized.entities.applicantOrganization) summary.missingEntity += 1;
     if ((normalized.contacts ?? []).some((c) => c.role === ROLES.UNKNOWN)) summary.unclearRole += 1;
+    if (prospectReadiness.status === 'identifiable_business') summary.identifiableBusiness += 1;
+    else if (prospectReadiness.status === 'research_required') summary.researchRequired += 1;
+    else summary.notActionable += 1;
 
     // Dataset (sanitized public record).
-    const datasetRecord = buildDatasetRecord(normalized, signal, fundingMatch, input.includeContacts);
+    const datasetRecord = buildDatasetRecord(normalized, signal, fundingMatch, input.includeContacts, extras);
     await Actor.pushData(datasetRecord);
 
     // Queue for delivery.
-    const deliveryRecord = buildDeliveryRecord(normalized, signal, fundingMatch, input.includeContacts);
+    const deliveryRecord = buildDeliveryRecord(normalized, signal, fundingMatch, input.includeContacts, extras);
     deliveryItems.push({ key: eventKey, record: deliveryRecord, sourceUpdatedAt: normalized.source.sourceUpdatedAt });
   }
 

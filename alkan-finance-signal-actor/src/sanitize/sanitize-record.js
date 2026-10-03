@@ -82,16 +82,25 @@ function researchLinks(normalized) {
 /**
  * Build the sanitized record pushed to the Apify default dataset.
  * Contains only public project data — no funding-program logic internals.
+ *
+ * @param {Object} [extras]
+ * @param {string} [extras.projectStage]
+ * @param {Object} [extras.prospectReadiness]
+ * @param {Object} [extras.relatedProject]
  */
-export function buildDatasetRecord(normalized, signal, fundingMatch, includeContacts = false) {
+export function buildDatasetRecord(normalized, signal, fundingMatch, includeContacts = false, extras = {}) {
   const contacts = normalized.contacts ?? [];
   const businessContactAvailable = contacts.some(
     (c) => c.contactType === 'organizational' || BUSINESS_ROLES.has(c.role),
   );
 
+  const prospect = extras.prospectReadiness ?? null;
+  const related = extras.relatedProject ?? { referencePermitNumbers: [], possibleSharedDevelopment: false };
+
   const record = {
     permitNumber: normalized.permit.permitNumber,
     status: normalized.permit.status,
+    projectStage: extras.projectStage ?? 'unknown',
     permitType: normalized.permit.permitType,
     permitClass: normalized.permit.permitClass,
     description: normalized.permit.description,
@@ -102,9 +111,18 @@ export function buildDatasetRecord(normalized, signal, fundingMatch, includeCont
     contacts: sanitizeContacts(contacts, includeContacts),
     publicActivityScore: signal.score,
     publicActivityBand: signal.band,
+    // Prospect readiness is SEPARATE from public activity and is NOT a credit,
+    // approval, borrower-quality, or repayment measure.
+    prospectReadiness: prospect,
+    prospectReadinessStatus: prospect?.status ?? null,
+    prospectReadinessScore: prospect?.score ?? 0,
+    prospectBlockingReasons: prospect?.blockingReasons ?? [],
     reasons: signal.reasons,
     warnings: signal.warnings,
     possibleUseCases: signal.possibleUseCases,
+    relatedProject: related,
+    referencePermitNumbers: related.referencePermitNumbers ?? [],
+    possibleSharedDevelopment: Boolean(related.possibleSharedDevelopment),
     fundingMatch,
     financialVerificationRequired: signal.financialVerificationRequired,
     manualReviewRequired: signal.manualReviewRequired,
@@ -119,8 +137,8 @@ export function buildDatasetRecord(normalized, signal, fundingMatch, includeCont
  * Build the record delivered to ALKAN. Same sanitized shape plus source
  * identifiers and entity roles (no PII unless includeContacts=true).
  */
-export function buildDeliveryRecord(normalized, signal, fundingMatch, includeContacts = false) {
-  const base = buildDatasetRecord(normalized, signal, fundingMatch, includeContacts);
+export function buildDeliveryRecord(normalized, signal, fundingMatch, includeContacts = false, extras = {}) {
+  const base = buildDatasetRecord(normalized, signal, fundingMatch, includeContacts, extras);
   return scrubForbidden({
     ...base,
     source: {

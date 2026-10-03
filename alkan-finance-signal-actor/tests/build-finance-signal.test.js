@@ -54,21 +54,26 @@ test('declared value is described as project value, NOT revenue', () => {
   }
 });
 
-test('financing use cases are only unverified hypotheses', () => {
+test('permit-only records never infer specific financing use cases', () => {
+  // Even a high-value, new-commercial permit (row-A) yields only the default,
+  // because permit data alone is insufficient evidence for any specific label.
   const s = sig('row-A');
-  assert.ok(s.possibleUseCases.length > 0);
-  for (const u of s.possibleUseCases) {
-    assert.equal(u.status, 'unverified_hypothesis');
-  }
-  const labels = s.possibleUseCases.map((u) => u.label);
-  assert.ok(labels.includes('Materials working capital may be relevant'));
+  assert.equal(s.possibleUseCases.length, 1);
+  assert.equal(s.possibleUseCases[0].label, 'Use of funds not established');
+  assert.equal(s.possibleUseCases[0].status, 'unverified_hypothesis');
 });
 
-test('possible use cases fall back to "use of funds not established"', () => {
-  const out = buildPossibleUseCases({ scopePoints: 0, matchedTrades: [], declaredValue: null });
+test('possible use cases default to "use of funds not established" with no evidence', () => {
+  const out = buildPossibleUseCases();
   assert.equal(out.length, 1);
   assert.equal(out[0].label, 'Use of funds not established');
   assert.equal(out[0].status, 'unverified_hypothesis');
+});
+
+test('specific use-case labels require explicit supporting evidence (future source)', () => {
+  const out = buildPossibleUseCases({ supportingEvidence: [{ category: 'accounts_receivable' }] });
+  assert.ok(out.some((u) => u.label === 'Accounts receivable financing may be relevant'));
+  for (const u of out) assert.equal(u.status, 'unverified_hypothesis');
 });
 
 test('funding match is always public-signal-only with 5 missing items', () => {

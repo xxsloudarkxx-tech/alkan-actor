@@ -7,6 +7,7 @@
     "properties": {
       "permitNumber": { "type": "string" },
       "status": { "type": "string" },
+      "projectStage": { "type": "string" },
       "permitType": { "type": "string" },
       "permitClass": { "type": "string" },
       "description": { "type": "string" },
@@ -17,9 +18,16 @@
       "contacts": { "type": "array" },
       "publicActivityScore": { "type": "integer" },
       "publicActivityBand": { "type": "string" },
+      "prospectReadiness": { "type": "object" },
+      "prospectReadinessStatus": { "type": "string" },
+      "prospectReadinessScore": { "type": "integer" },
+      "prospectBlockingReasons": { "type": "array" },
       "reasons": { "type": "array" },
       "warnings": { "type": "array" },
       "possibleUseCases": { "type": "array" },
+      "relatedProject": { "type": "object" },
+      "referencePermitNumbers": { "type": "array" },
+      "possibleSharedDevelopment": { "type": "boolean" },
       "fundingMatch": { "type": "object" },
       "financialVerificationRequired": { "type": "boolean" },
       "manualReviewRequired": { "type": "boolean" },
@@ -35,11 +43,15 @@
         "fields": [
           "permitNumber",
           "status",
+          "projectStage",
           "permitType",
           "declaredProjectValue",
           "entityRole",
           "publicActivityScore",
           "publicActivityBand",
+          "prospectReadinessStatus",
+          "prospectReadinessScore",
+          "possibleSharedDevelopment",
           "observedAt"
         ]
       },
@@ -48,11 +60,15 @@
         "properties": {
           "permitNumber": { "label": "Permit #" },
           "status": { "label": "Status" },
+          "projectStage": { "label": "Stage" },
           "permitType": { "label": "Type" },
           "declaredProjectValue": { "label": "Declared value" },
           "entityRole": { "label": "Entity role" },
           "publicActivityScore": { "label": "Activity score" },
           "publicActivityBand": { "label": "Band" },
+          "prospectReadinessStatus": { "label": "Prospect readiness" },
+          "prospectReadinessScore": { "label": "Readiness score" },
+          "possibleSharedDevelopment": { "label": "Shared dev?" },
           "observedAt": { "label": "Observed" }
         }
       }

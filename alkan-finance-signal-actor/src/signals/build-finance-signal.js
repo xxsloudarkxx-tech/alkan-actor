@@ -20,7 +20,18 @@ const PUBLIC_ENTITY_RE = /\b(city of|county|public school|school district|univer
 
 const NEW_COMMERCIAL_RE = /\b(new commercial|commercial construction|new construction|new building|ground[- ]up|core and shell|shell building|major alteration|substantial alteration|establish (a )?new)\b/i;
 const TI_REMODEL_RE = /\b(tenant improvement|tenant improvements|\bt\.?i\.?\b|build[- ]?out|remodel|renovation|substantial remodel|interior alteration|rehabilitation|retrofit)\b/i;
-const EQUIPMENT_TRADES = ['electrical', 'mechanical', 'hvac', 'concrete', 'plumbing', 'crane', 'equipment'];
+
+// Allowed financing use-case labels. These may ONLY be emitted when a future
+// source supplies explicit supporting evidence (invoice/receivable/completed work
+// awaiting payment, or a verified business role with matching public evidence).
+// They are NEVER inferred from permit-only signals (value/freshness/description/
+// address/status/construction keywords).
+const USE_CASE_LABELS = {
+  materials_working_capital: 'Materials working capital may be relevant',
+  payroll_mobilization: 'Payroll or mobilization financing may be relevant',
+  equipment_financing: 'Equipment financing may be relevant',
+  accounts_receivable: 'Accounts receivable financing may be relevant',
+};
 
 // ── Factor A: Record freshness (max 25) ──────────────────────────────────────
 export function scoreFreshness(normalized, observedAtIso) {
@@ -139,16 +150,29 @@ export function scoreScope(normalized, tradeKeywords = []) {
 }
 
 // ── Possible financing use cases (non-factual hypotheses only) ────────────────
-export function buildPossibleUseCases({ scopePoints, matchedTrades, declaredValue }) {
+/**
+ * Permit data ALONE is never sufficient to hypothesize a financing use case.
+ * A specific label (materials / payroll / equipment / accounts-receivable) is
+ * emitted ONLY when `supportingEvidence` carries an explicit item for it from a
+ * future source — e.g. an invoice, a receivable, completed work awaiting
+ * payment, or a verified business role with matching public evidence. We do NOT
+ * infer these from construction keywords, value, freshness, description, address
+ * or status. With no such evidence (the permit-only case) the result is the
+ * single "Use of funds not established" hypothesis.
+ *
+ * @param {Object} [opts]
+ * @param {Array<{category: string}>} [opts.supportingEvidence]
+ * @returns {import('../types/finance-signal.js').PossibleUseCase[]}
+ */
+export function buildPossibleUseCases({ supportingEvidence = [] } = {}) {
   /** @param {string} label @returns {import('../types/finance-signal.js').PossibleUseCase} */
   const H = (label) => ({ label, status: 'unverified_hypothesis' });
   const out = [];
-  const trades = matchedTrades ?? [];
 
-  if (scopePoints >= 6 || trades.length > 0) out.push(H('Materials working capital may be relevant'));
-  if (scopePoints >= 10) out.push(H('Payroll or mobilization financing may be relevant'));
-  if (trades.some((t) => EQUIPMENT_TRADES.includes(t))) out.push(H('Equipment financing may be relevant'));
-  if (typeof declaredValue === 'number' && declaredValue >= 100_000) out.push(H('Accounts receivable financing may be relevant'));
+  for (const ev of Array.isArray(supportingEvidence) ? supportingEvidence : []) {
+    const label = USE_CASE_LABELS[ev?.category];
+    if (label) out.push(H(label));
+  }
 
   if (out.length === 0) out.push(H('Use of funds not established'));
 
@@ -195,6 +219,7 @@ function buildWarnings(normalized, { businessRole }) {
  * @param {Object} [opts]
  * @param {string} [opts.observedAt]
  * @param {string[]} [opts.tradeKeywords]
+ * @param {Array<{category: string}>} [opts.supportingEvidence]
  * @returns {import('../types/finance-signal.js').PublicProjectActivitySignal}
  */
 export function buildFinanceSignal(normalized, opts = {}) {
@@ -227,11 +252,9 @@ export function buildFinanceSignal(normalized, opts = {}) {
   else band = 'low';
 
   const warnings = buildWarnings(normalized, { businessRole: role });
-  const possibleUseCases = buildPossibleUseCases({
-    scopePoints: scope.points,
-    matchedTrades: scope.matchedTrades,
-    declaredValue: normalized.permit.declaredValue,
-  });
+  // Permit-only records carry no supporting financial evidence, so this yields
+  // only the "Use of funds not established" hypothesis.
+  const possibleUseCases = buildPossibleUseCases({ supportingEvidence: opts.supportingEvidence });
 
   return {
     signalVersion: SIGNAL_VERSION,
